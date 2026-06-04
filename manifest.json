@@ -1,0 +1,26 @@
+{
+  "name": "TAKE COMMAND — Battle Domains Tracker",
+  "short_name": "Take Command",
+  "description": "Track your 7 Battle Domains of Life based on Take Command by Victor Simukonda",
+  "start_url": "/take-command-tracker.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080a0d",
+  "theme_color": "#e8b424",
+  "categories": ["productivity", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
