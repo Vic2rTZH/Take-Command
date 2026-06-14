@@ -410,6 +410,7 @@ const DOMAINS = [
       {id:'skin_temp',     label:'Skin Temperature',       unit:'°F',     target:94.5,  type:'number', min:85, max:105, optimal:[90,98]},
       {id:'weight_kg',     label:'Body Weight',            unit:'kg',     target:70,    type:'number', min:30, max:250, step:0.1, optimal:[65,75]},
       {id:'water_litres',  label:'Water Intake',           unit:'L/day',  target:3,     type:'number', min:0, max:10, step:0.1},
+      {id:'exercise_sess', label:'Exercise Sessions',      unit:'/wk',    target:5,     type:'number', min:0, max:21},
     ],
     aiInsights:{
       critical:'Your primary weapon system is failing. Poor sleep, low activity, and physiological stress are degrading your cognitive performance, decision-making, and resilience. A commander who neglects the body eventually weakens every other domain.',
@@ -3200,6 +3201,7 @@ const HEALTH_FIELDS = [
   {id:'stress_lvl',   label:'Stress Level',        unit:'/10',   placeholder:'Normal≈3  High≈7  Very High≈9'},
   {id:'weight_kg',    label:'Body Weight',         unit:'kg',    placeholder:'e.g. 82.5'},
   {id:'water_litres', label:'Water Intake',        unit:'L/day', placeholder:'e.g. 2.5'},
+  {id:'exercise_sess', label:'Exercise Sessions',  unit:'/wk',   placeholder:'e.g. 4'},
 ];
 
 function buildHealthForm() {
