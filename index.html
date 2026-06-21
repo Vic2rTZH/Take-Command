@@ -3187,6 +3187,10 @@ function virgilRulesResponse(userMsg) {
   return `${ctx.name}, I'm VIRGIL. Ask me for a SITREP, a battle plan, or about any specific domain like "How's my financial domain?" or "Give me a Spiritual assessment."`;
 }
 
+function virgilFormatText(text) {
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+
 function virgilRenderMessages() {
   const el = document.getElementById('virgil-messages');
   if (!el) return;
@@ -3199,13 +3203,46 @@ function virgilRenderMessages() {
       return `<div class="vmsg virgil"><div class="vmsg-icon">⚔</div><div class="vmsg-typing"><span></span><span></span><span></span></div></div>`;
     }
     const isUser = m.role === 'user';
-    const formatted = m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     return `<div class="vmsg ${isUser ? 'user' : 'virgil'}">
       <div class="vmsg-icon">${isUser ? '🎖' : '⚔'}</div>
-      <div class="vmsg-bubble">${formatted}</div>
+      <div class="vmsg-bubble">${virgilFormatText(m.text)}</div>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
+}
+
+function virgilTypewrite(fullText, onDone) {
+  // Remove typing indicator and add empty virgil message
+  virgilHistory = virgilHistory.filter(m => m.role !== 'typing');
+  const msgObj = { role: 'virgil', text: '' };
+  virgilHistory.push(msgObj);
+  virgilRenderMessages();
+
+  const el = document.getElementById('virgil-messages');
+  const bubbles = el ? el.querySelectorAll('.vmsg.virgil .vmsg-bubble') : [];
+  const bubble = bubbles[bubbles.length - 1];
+  if (!bubble) { msgObj.text = fullText; virgilRenderMessages(); if (onDone) onDone(); return; }
+
+  let i = 0;
+  const chunkSize = 3; // chars per tick — faster feel
+  const delay = 12;    // ms between ticks
+
+  function tick() {
+    if (i >= fullText.length) {
+      msgObj.text = fullText;
+      bubble.innerHTML = virgilFormatText(fullText);
+      if (el) el.scrollTop = el.scrollHeight;
+      if (onDone) onDone();
+      return;
+    }
+    i = Math.min(i + chunkSize, fullText.length);
+    msgObj.text = fullText.slice(0, i);
+    // Render plain text while streaming (no markdown parsing mid-word)
+    bubble.textContent = msgObj.text;
+    if (el) el.scrollTop = el.scrollHeight;
+    setTimeout(tick, delay);
+  }
+  tick();
 }
 
 async function virgilSend() {
@@ -3230,10 +3267,7 @@ async function virgilSend() {
     // Rules-based response with slight delay for feel
     await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
     const response = virgilRulesResponse(text);
-    virgilHistory = virgilHistory.filter(m => m.role !== 'typing');
-    virgilHistory.push({ role: 'virgil', text: response });
-    virgilRenderMessages();
-    virgilSpeak(response);
+    virgilTypewrite(response, () => virgilSpeak(response));
   }
 }
 
@@ -3297,17 +3331,15 @@ async function virgilCallAI(userMsg, provider, apiKey) {
     }
 
     const processedText = virgilParseAndExecuteActions(replyText);
-    virgilHistory = virgilHistory.filter(m => m.role !== 'typing');
-    virgilHistory.push({ role: 'virgil', text: processedText });
-    virgilSpeak(processedText);
+    virgilTypewrite(processedText, () => virgilSpeak(processedText));
 
   } catch (err) {
     virgilHistory = virgilHistory.filter(m => m.role !== 'typing');
     const isCors = err.message.includes('fetch') || err.message.includes('Network');
-    virgilHistory.push({ role: 'virgil', text: isCors
+    const errText = isCors
       ? `Connection blocked — likely CORS from a local file. Switching to tactical mode.\n\n${virgilRulesResponse(userMsg)}`
-      : `API error: ${err.message}\n\nFalling back:\n\n${virgilRulesResponse(userMsg)}`
-    });
+      : `API error: ${err.message}\n\nFalling back:\n\n${virgilRulesResponse(userMsg)}`;
+    virgilHistory.push({ role: 'virgil', text: errText });
   }
   virgilRenderMessages();
 }
