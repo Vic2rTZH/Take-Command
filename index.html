@@ -3188,7 +3188,23 @@ function virgilRulesResponse(userMsg) {
 }
 
 function virgilFormatText(text) {
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  return text
+    .replace(/^# (.+)$/gm,   '<div style="font-family:var(--font-military);font-size:15px;letter-spacing:3px;color:var(--gold2);margin:14px 0 5px;text-transform:uppercase">$1</div>')
+    .replace(/^## (.+)$/gm,  '<div style="font-family:var(--font-military);font-size:13px;letter-spacing:2px;color:var(--gold2);margin:12px 0 4px;text-transform:uppercase">$1</div>')
+    .replace(/^### (.+)$/gm, '<div style="font-family:var(--font-military);font-size:12px;letter-spacing:2px;color:var(--text2);margin:10px 0 3px;text-transform:uppercase">$1</div>')
+    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid rgba(201,153,12,.2);margin:10px 0">')
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--gold2)">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+// Plain text version for streaming (no symbols visible)
+function virgilStripMd(text) {
+  return text
+    .replace(/^#{1,3} /gm, '')
+    .replace(/^---+$/gm, '—')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1');
 }
 
 function virgilRenderMessages() {
@@ -3205,41 +3221,46 @@ function virgilRenderMessages() {
     const isUser = m.role === 'user';
     return `<div class="vmsg ${isUser ? 'user' : 'virgil'}">
       <div class="vmsg-icon">${isUser ? '🎖' : '⚔'}</div>
-      <div class="vmsg-bubble">${virgilFormatText(m.text)}</div>
+      <div class="vmsg-bubble">${isUser ? escHtml(m.text) : virgilFormatText(m.text)}</div>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
 
 function virgilTypewrite(fullText, onDone) {
-  // Remove typing indicator and add empty virgil message
   virgilHistory = virgilHistory.filter(m => m.role !== 'typing');
-  const msgObj = { role: 'virgil', text: '' };
-  virgilHistory.push(msgObj);
+  const msgIdx = virgilHistory.length;
+  virgilHistory.push({ role: 'virgil', text: '' });
   virgilRenderMessages();
 
-  const el = document.getElementById('virgil-messages');
-  const bubbles = el ? el.querySelectorAll('.vmsg.virgil .vmsg-bubble') : [];
-  const bubble = bubbles[bubbles.length - 1];
-  if (!bubble) { msgObj.text = fullText; virgilRenderMessages(); if (onDone) onDone(); return; }
-
+  const plain = virgilStripMd(fullText); // symbol-free version for streaming
   let i = 0;
-  const chunkSize = 3; // chars per tick — faster feel
-  const delay = 12;    // ms between ticks
+  const chunkSize = 4;
+  const delay = 10;
 
   function tick() {
-    if (i >= fullText.length) {
-      msgObj.text = fullText;
-      bubble.innerHTML = virgilFormatText(fullText);
-      if (el) el.scrollTop = el.scrollHeight;
+    const el = document.getElementById('virgil-messages');
+    if (!el) return;
+
+    if (i >= plain.length) {
+      // Streaming done — swap in fully formatted HTML
+      virgilHistory[msgIdx].text = fullText;
+      const bubbles = el.querySelectorAll('.vmsg.virgil .vmsg-bubble');
+      const bubble = bubbles[bubbles.length - 1];
+      if (bubble) bubble.innerHTML = virgilFormatText(fullText);
+      el.scrollTop = el.scrollHeight;
       if (onDone) onDone();
       return;
     }
-    i = Math.min(i + chunkSize, fullText.length);
-    msgObj.text = fullText.slice(0, i);
-    // Render plain text while streaming (no markdown parsing mid-word)
-    bubble.textContent = msgObj.text;
-    if (el) el.scrollTop = el.scrollHeight;
+
+    i = Math.min(i + chunkSize, plain.length);
+    // Re-query each tick so stale refs never cause silent failures
+    const bubbles = el.querySelectorAll('.vmsg.virgil .vmsg-bubble');
+    const bubble = bubbles[bubbles.length - 1];
+    if (bubble) {
+      bubble.textContent = plain.slice(0, i);
+      el.scrollTop = el.scrollHeight;
+    }
     setTimeout(tick, delay);
   }
   tick();
