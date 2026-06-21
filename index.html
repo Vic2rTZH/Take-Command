@@ -1078,7 +1078,7 @@ function renderTrend(canvasId, domainId) {
 // ================================================================
 function runAI() {
   const today = todayKey();
-  const scores = DOMAINS.map(d=>({id:d.id, name:d.name, icon:d.icon, score:domainScore(d.id,today)}));
+  const scores = DOMAINS.map(d=>({id:d.id, name:d.name, icon:d.icon, iconName:d.iconName, color:d.color, score:domainScore(d.id,today)}));
   const withData = scores.filter(s=>s.score!==null);
   if(!withData.length) return {overall:null, recs:[], status:'NO DATA'};
 
@@ -1092,7 +1092,7 @@ function runAI() {
   weakest.forEach(w=>{
     const dom=DOMAINS.find(d=>d.id===w.id);
     const tier = w.score<40?'critical':w.score<60?'degraded':w.score<75?'adequate':w.score<90?'good':'excellent';
-    recs.push({tag:`${w.icon} ${w.name} — PRIORITY TARGET`, text:dom.aiInsights[tier], critical:w.score<60});
+    recs.push({tag:`${w.name} — PRIORITY TARGET`, tagIcon:w.iconName, tagColor:w.color, text:dom.aiInsights[tier], critical:w.score<60});
   });
 
   // Cross-domain insights
@@ -1102,18 +1102,18 @@ function runAI() {
   const finScore  = scores.find(s=>s.id==='financial')?.score;
 
   if(physScore!==null && physScore<60 && profScore!==null && profScore<75) {
-    recs.push({tag:'⚡ Cross-Domain Alert: Physical ↔ Professional', text:'Poor physical readiness is directly degrading professional performance. Neuroscience confirms: sleep deprivation and inactivity reduce cognitive function, decision-making, and resilience. Fix the body to fix the mission.', critical:true});
+    recs.push({tag:'Cross-Domain Alert: Physical ↔ Professional', tagIcon:'zap', tagColor:'#f5c842', text:'Poor physical readiness is directly degrading professional performance. Neuroscience confirms: sleep deprivation and inactivity reduce cognitive function, decision-making, and resilience. Fix the body to fix the mission.', critical:true});
   }
   if(spirScore!==null && spirScore<60) {
-    recs.push({tag:'🎯 COG Under Threat', text:'When the Center of Gravity falls, the entire campaign falls apart. Spiritual weakness creates cascading vulnerabilities across all other domains. Prioritize spiritual recovery before advancing elsewhere.', critical:true});
+    recs.push({tag:'COG Under Threat', tagIcon:'crosshair', tagColor:'#f87171', text:'When the Center of Gravity falls, the entire campaign falls apart. Spiritual weakness creates cascading vulnerabilities across all other domains. Prioritize spiritual recovery before advancing elsewhere.', critical:true});
   }
   if(finScore!==null && finScore<50 && physScore!==null && physScore<70) {
-    recs.push({tag:'⚠️ Dual Domain Strain', text:'Financial and physical domains are simultaneously degraded. Stress from financial pressure is likely amplifying physical stress levels. Address both in parallel: establish a financial baseline and daily physical protocol.', critical:false});
+    recs.push({tag:'Dual Domain Strain', tagIcon:'alert-triangle', tagColor:'#fbbf24', text:'Financial and physical domains are simultaneously degraded. Stress from financial pressure is likely amplifying physical stress levels. Address both in parallel: establish a financial baseline and daily physical protocol.', critical:false});
   }
 
   // Strength leverage
   if(strongest && strongest.score>75) {
-    recs.push({tag:`✅ Leverage Strength: ${strongest.icon} ${strongest.name}`, text:`Your ${strongest.name} domain is your strongest asset right now. Use its momentum to pull up weaker domains. Let your strength fund your recovery.`, critical:false});
+    recs.push({tag:`Leverage Strength: ${strongest.name}`, tagIcon:strongest.iconName, tagColor:strongest.color, text:`Your ${strongest.name} domain is your strongest asset right now. Use its momentum to pull up weaker domains. Let your strength fund your recovery.`, critical:false});
   }
 
   // Overall battle plan
@@ -1555,7 +1555,7 @@ function buildBudgetHTML() {
     const isOver = s > b && b > 0;
 
     return `<div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${c.icon} ${c.label}</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${iconSvg(c.iconName,14,c.color)} ${c.label}</div>
       <div>
         <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px">
           <span style="font-size:11px;color:var(--text3);font-weight:700">ZMW</span>
@@ -2136,7 +2136,7 @@ function getDailyQuoteHTML() {
   return `<div style="background:linear-gradient(135deg,rgba(201,153,12,.1),rgba(201,153,12,.03));border:1px solid rgba(201,153,12,.3);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden">
     <div style="position:absolute;top:-10px;right:-10px;font-size:80px;opacity:.04;line-height:1;font-family:serif">"</div>
     <div style="font-family:'Courier New',Consolas,monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-      <span>📖</span> Daily Order — ${dayLabel}
+      ${iconSvg('book-open',11,'#f5c842')} Daily Order — ${dayLabel}
     </div>
     <div style="font-size:14px;line-height:1.7;color:var(--text);font-style:italic;margin-bottom:12px">"${q.text}"</div>
     <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -2193,7 +2193,7 @@ function renderDashboard() {
   const ai = runAI();
   const aiRecs = ai.recs.slice(0,3).map(r=>`
     <div class="ai-rec${r.critical?' critical':''}">
-      <div class="ai-rec-tag">${r.tag}</div>
+      <div class="ai-rec-tag" style="display:flex;align-items:center;gap:6px">${r.tagIcon?iconSvg(r.tagIcon,12,r.tagColor||'currentColor'):''}${r.tag}</div>
       <div class="ai-rec-text">${r.text.replace(/\n/g,'<br>')}</div>
     </div>`).join('');
 
@@ -2216,7 +2216,7 @@ function renderDashboard() {
           </div>
         </div>
         <div style="margin-top:20px">
-          <button class="tb-btn btn-gold no-print" style="width:100%;justify-content:center;padding:16px;font-size:15px;letter-spacing:1.5px" onclick="openLogModal()">⚡ LOG TODAY'S DATA</button>
+          <button class="tb-btn btn-gold no-print" style="width:100%;justify-content:center;padding:16px;font-size:15px;letter-spacing:1.5px" onclick="openLogModal()" style="display:flex;align-items:center;justify-content:center;gap:8px">${iconSvg('zap',16,'#000')} LOG TODAY'S DATA</button>
         </div>
       </div>
     </div>
@@ -2224,14 +2224,14 @@ function renderDashboard() {
       <div class="card">
         <div class="card-title">Quick Stats</div>
         <div class="metric-row"><span class="metric-label">Domains Logged Today</span><span class="metric-val">${DOMAINS.filter(d=>getEntry(today)[d.id]).length}<span class="metric-unit">/7</span></span></div>
-        <div class="metric-row"><span class="metric-label">Strongest Domain</span><span class="metric-val" style="font-size:13px">${ai.strongest?ai.strongest.icon+' '+ai.strongest.name:'—'}</span></div>
-        <div class="metric-row"><span class="metric-label">Priority Target</span><span class="metric-val" style="font-size:13px;color:var(--red)">${ai.weakest&&ai.weakest[0]?ai.weakest[0].icon+' '+ai.weakest[0].name:'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Strongest Domain</span><span class="metric-val" style="font-size:13px;display:flex;align-items:center;gap:5px">${ai.strongest?iconSvg(ai.strongest.iconName,14,ai.strongest.color)+' '+ai.strongest.name:'—'}</span></div>
+        <div class="metric-row"><span class="metric-label">Priority Target</span><span class="metric-val" style="font-size:13px;color:var(--red);display:flex;align-items:center;gap:5px">${ai.weakest&&ai.weakest[0]?iconSvg(ai.weakest[0].iconName,14,ai.weakest[0].color)+' '+ai.weakest[0].name:'—'}</span></div>
       </div>
       <div id="daily-quote-wrap">${getDailyQuoteHTML()}</div>
     </div>
 
     <div class="card mb20">
-      <div class="card-title" style="margin-bottom:0">🎯 Mission Task Board</div>
+      <div class="card-title" style="margin-bottom:0;display:flex;align-items:center;gap:6px">${iconSvg('crosshair',14,'#f5c842')} Mission Task Board</div>
       <div id="dash-tasks-area" style="margin-top:16px"><div style="color:var(--text3);font-size:14px;padding:20px 0 8px">Loading…</div></div>
     </div>
 
@@ -2315,7 +2315,7 @@ function renderDomain(domainId) {
 
   document.getElementById('content').innerHTML = `
     <div class="flex items-center gap12 mb20">
-      <span style="font-size:32px">${dom.icon}</span>
+      <span>${iconSvg(dom.iconName,36,dom.color)}</span>
       <div>
         <div style="font-family:'Courier New',Consolas,monospace;font-size:16px;font-weight:700">${dom.name} Domain</div>
         <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">${dom.subtitle}</div>
@@ -2345,7 +2345,7 @@ function renderDomain(domainId) {
               <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:900;font-size:14px;color:#000;flex-shrink:0">V</div>
               <div>
                 <div class="ai-title" style="margin-bottom:1px">VIRGIL — Live Assessment</div>
-                <div style="font-size:10px;color:var(--text3);letter-spacing:.5px">${dom.icon} ${dom.name} Domain · ${todayKey()}</div>
+                <div style="font-size:10px;color:var(--text3);letter-spacing:.5px;display:flex;align-items:center;gap:4px">${iconSvg(dom.iconName,10,dom.color)} ${dom.name} Domain · ${todayKey()}</div>
               </div>
               <button class="tb-btn btn-ghost no-print" style="margin-left:auto;padding:4px 10px;font-size:11px;border-radius:6px" onclick="navigate('ai');setTimeout(()=>virgilQuickAsk('Give me a full assessment of my ${dom.name} domain and what I should do to improve it'),300)">Ask Virgil ↗</button>
             </div>
@@ -2406,7 +2406,7 @@ function renderDomain(domainId) {
 
     <div id="tab-tasks" class="tab-pane">
       <div class="card">
-        <div class="card-title">🎯 Domain Tasks</div>
+        <div class="card-title" style="display:flex;align-items:center;gap:6px">${iconSvg('crosshair',14,'#f5c842')} Domain Tasks</div>
         <div id="domain-tasks-area"><div class="task-empty">Loading tasks…</div></div>
       </div>
     </div>`;
@@ -3207,7 +3207,7 @@ function renderReports() {
 
       <div class="ai-panel">
         <div class="ai-head"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:900;font-size:11px;color:#000;flex-shrink:0">V</div><div class="ai-title">Virgil — Assessment Summary</div></div>
-        ${runAI().recs.map(r=>`<div class="ai-rec${r.critical?' critical':''}"><div class="ai-rec-tag">${r.tag}</div><div class="ai-rec-text">${r.text.replace(/\n/g,'<br>')}</div></div>`).join('')||'<div style="color:var(--text2);font-size:13px">Log data to generate assessment.</div>'}
+        ${runAI().recs.map(r=>`<div class="ai-rec${r.critical?' critical':''}"><div class="ai-rec-tag" style="display:flex;align-items:center;gap:6px">${r.tagIcon?iconSvg(r.tagIcon,12,r.tagColor||'currentColor'):''}${r.tag}</div><div class="ai-rec-text">${r.text.replace(/\n/g,'<br>')}</div></div>`).join('')||'<div style="color:var(--text2);font-size:13px">Log data to generate assessment.</div>'}
       </div>
     </div>`;
 }
@@ -3261,11 +3261,11 @@ function renderSettings() {
 
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="tb-btn btn-gold no-print" onclick="saveSettings()">Save Settings</button>
-          <button class="tb-btn btn-ghost no-print" onclick="testApiKey()">🔬 Test Active Key</button>
+          <button class="tb-btn btn-ghost no-print" onclick="testApiKey()" style="display:flex;align-items:center;gap:6px">${iconSvg('cpu',13,'currentColor')} Test Active Key</button>
         </div>
         <div id="api-test-result" style="margin-top:10px;font-size:12px"></div>
         <div class="ai-rec" style="margin-top:14px;border-left-color:var(--blue)">
-          <div class="ai-rec-tag" style="color:#60a5fa">⚠️ Local File Note</div>
+          <div class="ai-rec-tag" style="color:#60a5fa;display:flex;align-items:center;gap:6px">${iconSvg('alert-triangle',12,'#60a5fa')} Local File Note</div>
           <div class="ai-rec-text">If you opened this file directly (file://), some browsers block API calls due to CORS. If Virgil fails, serve via a local server (e.g. <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px">npx serve .</code>).</div>
         </div>
       </div>
@@ -3308,7 +3308,7 @@ function renderSettings() {
           <button class="tb-btn btn-ghost no-print" onclick="autoSyncTaskFile().then(()=>showToast('Tasks exported'))">↻ Export Now</button>
         </div>
         <div class="ai-rec" style="margin-top:14px;border-left-color:var(--blue)">
-          <div class="ai-rec-tag">💡 Setup Tip</div>
+          <div class="ai-rec-tag" style="display:flex;align-items:center;gap:6px">${iconSvg('zap',12,'#f5c842')} Setup Tip</div>
           <div class="ai-rec-text" style="font-size:13px">Save the file to <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px">C:\Users\vsimu\Documents\Claude\tc-tasks.json</code> so the Morning Brief can find it automatically.</div>
         </div>
       </div>
@@ -3331,7 +3331,7 @@ function openLogModal(domainId) {
   if(domainId) {
     const dom = DOMAINS.find(d=>d.id===domainId);
     const entry = getEntry(todayKey())[domainId]||{};
-    document.getElementById('log-modal-title').textContent = dom.icon+' '+dom.name.toUpperCase()+' — LOG ENTRY';
+    document.getElementById('log-modal-title').innerHTML = iconSvg(dom.iconName,16,dom.color)+' '+dom.name.toUpperCase()+' — LOG ENTRY';
     document.getElementById('log-modal-body').innerHTML = buildDomainForm(dom, entry);
   } else {
     // Show domain selector
@@ -3583,7 +3583,7 @@ Keep it direct, strategic, and motivating. Reference specific military principle
     if(outputEl) {
       outputEl.innerHTML = `
         <div class="ai-rec" style="border-left-color:var(--gold2)">
-          <div class="ai-rec-tag">🤖 Claude AI — Commander's Brief</div>
+          <div class="ai-rec-tag" style="display:flex;align-items:center;gap:6px">${iconSvg('cpu',12,'#f5c842')} Claude AI — Commander's Brief</div>
           <div class="ai-rec-text" style="white-space:pre-wrap">${text}</div>
         </div>`;
     }
@@ -3620,7 +3620,7 @@ function navigate(view, domainId) {
   const titles = {dashboard:'Mission Dashboard', ai:'Virgil — XO', reports:'Battle Reports', settings:'Settings'};
   if(view==='domain') {
     const dom = DOMAINS.find(d=>d.id===domainId);
-    document.getElementById('tb-title').textContent = dom.icon+' '+dom.name+' Domain';
+    document.getElementById('tb-title').innerHTML = iconSvg(dom.iconName,16,dom.color)+' '+dom.name+' Domain';
   } else {
     document.getElementById('tb-title').textContent = titles[view]||view;
   }
