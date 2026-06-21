@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>TAKE COMMAND — 7 Battle Domains Tracker</title>
 
 <link rel="manifest" href="manifest.json">
@@ -274,7 +274,14 @@ input,select,textarea,button{font-family:inherit}
   /* Topbar: show hamburger, shrink title */
   #mob-menu-btn { display: flex !important; }
   .tb-title { font-size: 13px; letter-spacing: 1px; }
-  #topbar { padding: 10px 14px; gap: 8px; }
+  #topbar { padding: 10px 14px; gap: 8px; min-height: 52px; flex-wrap: nowrap; }
+
+  /* Dashboard: shrink the giant 86px score number */
+  [style*="font-size:86px"] { font-size: 56px !important; }
+
+  /* Radar chart: constrain height on mobile */
+  [style*="font-size:86px"] ~ * canvas,
+  canvas { max-width: 100% !important; }
 
   /* Grids collapse to single column */
   .g2, .g3, .g4 { grid-template-columns: 1fr !important; }
