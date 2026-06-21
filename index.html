@@ -947,7 +947,7 @@ function renderRadar(canvasId) {
     ctx.beginPath();
     for(let j=0;j<N;j++){ const p=pt(j,ring/4); j===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y); }
     ctx.closePath(); ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.stroke();
-    ctx.fillStyle='rgba(140,160,190,0.8)'; ctx.font='9px Segoe UI,sans-serif';
+    ctx.fillStyle='rgba(140,160,190,0.8)'; ctx.font='11px "Bebas Neue",sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(ring*25+'%', cx+2, cy-r*(ring/4)+1);
   }
@@ -975,13 +975,13 @@ function renderRadar(canvasId) {
   const lpad=26;
   for(let j=0;j<N;j++){
     const a=ang(j), lx=cx+Math.cos(a)*(r+lpad), ly=cy+Math.sin(a)*(r+lpad);
-    ctx.font='bold 14px Segoe UI,sans-serif'; ctx.fillStyle='#c8daf0';
+    ctx.font='16px "Bebas Neue",sans-serif'; ctx.fillStyle='#c8daf0';
     ctx.textAlign=Math.cos(a)>0.2?'left':Math.cos(a)<-0.2?'right':'center';
     ctx.textBaseline=Math.sin(a)>0.2?'top':Math.sin(a)<-0.2?'bottom':'middle';
     ctx.fillText(DOMAINS[j].name, lx, ly);
   }
   // Legend
-  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='11px Segoe UI,sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.font='13px "Bebas Neue",sans-serif';
   ctx.strokeStyle='rgba(232,180,36,0.85)'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(10,H-18); ctx.lineTo(26,H-18); ctx.stroke();
   ctx.fillStyle='#8fa0b8'; ctx.fillText('Today',30,H-18);
