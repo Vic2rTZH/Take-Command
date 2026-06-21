@@ -3233,7 +3233,6 @@ function virgilTypewrite(fullText, onDone) {
   virgilHistory.push({ role: 'virgil', text: '' });
   virgilRenderMessages();
 
-  const plain = virgilStripMd(fullText); // symbol-free version for streaming
   let i = 0;
   const chunkSize = 4;
   const delay = 10;
@@ -3242,8 +3241,7 @@ function virgilTypewrite(fullText, onDone) {
     const el = document.getElementById('virgil-messages');
     if (!el) return;
 
-    if (i >= plain.length) {
-      // Streaming done — swap in fully formatted HTML
+    if (i >= fullText.length) {
       virgilHistory[msgIdx].text = fullText;
       const bubbles = el.querySelectorAll('.vmsg.virgil .vmsg-bubble');
       const bubble = bubbles[bubbles.length - 1];
@@ -3253,12 +3251,11 @@ function virgilTypewrite(fullText, onDone) {
       return;
     }
 
-    i = Math.min(i + chunkSize, plain.length);
-    // Re-query each tick so stale refs never cause silent failures
+    i = Math.min(i + chunkSize, fullText.length);
     const bubbles = el.querySelectorAll('.vmsg.virgil .vmsg-bubble');
     const bubble = bubbles[bubbles.length - 1];
     if (bubble) {
-      bubble.textContent = plain.slice(0, i);
+      bubble.innerHTML = virgilFormatText(fullText.slice(0, i));
       el.scrollTop = el.scrollHeight;
     }
     setTimeout(tick, delay);
