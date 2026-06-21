@@ -1806,8 +1806,14 @@ function buildFinanceHTML(){
 
 
 // ================================================================
-//  CREDIT CARDS
+//  CREDIT CARDS  (USD — converted to ZMW for display)
 // ================================================================
+function getUsdRate(){ return parseFloat(localStorage.getItem('tc_usd_rate')||'27.5'); }
+function setUsdRate(r){ localStorage.setItem('tc_usd_rate',String(r)); rerenderCards(); }
+function fmtUSD(n){ return '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function usdToZmw(usd){ return usd*getUsdRate(); }
+function fmtZMWfromUSD(usd){ return fmtZMW(usdToZmw(usd)); }
+
 function getCards(){
   try{ return JSON.parse(localStorage.getItem('tc_cards')||'[]'); }catch{ return []; }
 }
@@ -1826,6 +1832,13 @@ function utilColor(pct){ return pct>=80?'#f87171':pct>=50?'#fbbf24':'#4ade80'; }
 function rerenderCards(){
   const el=document.getElementById('credit-cards-section');
   if(el) el.outerHTML=buildCreditCardsHTML();
+}
+
+function saveUsdRate(){
+  const v=parseFloat(document.getElementById('usd-rate-input')?.value);
+  if(!v||v<=0){showToast('Enter a valid rate');return;}
+  setUsdRate(v);
+  showToast('Rate updated: 1 USD = ZMW '+v.toFixed(2));
 }
 
 function submitAddCard(){
@@ -1878,10 +1891,10 @@ function toggleCardBody(id){
 
 function buildCreditCardsHTML(){
   const cards=getCards();
+  const rate=getUsdRate();
   const totalLimit=cards.reduce((s,c)=>s+(c.limit||0),0);
   const totalBal=cards.reduce((s,c)=>s+cardBalance(c),0);
   const totalAvail=Math.max(0,totalLimit-totalBal);
-  const overallUtil=totalLimit>0?Math.min(100,Math.round((totalBal/totalLimit)*100)):0;
 
   const cardItems=cards.map(card=>{
     const bal=cardBalance(card);
@@ -1904,7 +1917,10 @@ function buildCreditCardsHTML(){
         <td style="padding:7px 8px;text-align:center">
           <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${t.type==='payment'?'rgba(74,222,128,.15)':'rgba(248,113,113,.15)'};color:${t.type==='payment'?'#4ade80':'#f87171'}">${t.type==='payment'?'PAYMENT':'PURCHASE'}</span>
         </td>
-        <td style="padding:7px 8px;text-align:right;font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:${t.type==='payment'?'#4ade80':'#f87171'}">${t.type==='payment'?'−':'+'} ${fmtZMW(t.amount)}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:${t.type==='payment'?'#4ade80':'#f87171'}">
+          ${t.type==='payment'?'−':'+'} ${fmtUSD(t.amount)}
+          <div style="font-size:10px;color:var(--text3);font-weight:400">≈ ${fmtZMWfromUSD(t.amount)}</div>
+        </td>
         <td style="padding:7px 8px;text-align:center"><button onclick="deleteCardTx('${card.id}','${t.id}')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--text3)" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">✕</button></td>
       </tr>`).join('')
       :'<tr><td colspan="5" style="padding:12px 8px;font-size:13px;color:var(--text3)">No transactions yet.</td></tr>';
@@ -1915,7 +1931,7 @@ function buildCreditCardsHTML(){
           <div>${iconSvg('credit-card',20,uc)}</div>
           <div>
             <div style="font-family:var(--font-military);font-size:15px;letter-spacing:1px">${escHtml(card.name)}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Limit: ${fmtZMW(card.limit)} · Due day ${card.dueDay} of each month</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Limit: ${fmtUSD(card.limit)} · Due day ${card.dueDay} of each month</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:16px;margin-right:10px">
@@ -1927,15 +1943,17 @@ function buildCreditCardsHTML(){
         </div>
       </div>
 
-      <!-- Balance bar -->
+      <!-- Balance stats -->
       <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
         <div style="background:var(--bg4);border-radius:6px;padding:8px">
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Balance</div>
-          <div style="font-family:var(--font-military);font-size:16px;color:#f87171">${fmtZMW(bal)}</div>
+          <div style="font-family:var(--font-military);font-size:16px;color:#f87171">${fmtUSD(bal)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">≈ ${fmtZMWfromUSD(bal)}</div>
         </div>
         <div style="background:var(--bg4);border-radius:6px;padding:8px">
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Available</div>
-          <div style="font-family:var(--font-military);font-size:16px;color:#4ade80">${fmtZMW(avail)}</div>
+          <div style="font-family:var(--font-military);font-size:16px;color:#4ade80">${fmtUSD(avail)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">≈ ${fmtZMWfromUSD(avail)}</div>
         </div>
         <div style="background:var(--bg4);border-radius:6px;padding:8px">
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Interest</div>
@@ -1953,7 +1971,7 @@ function buildCreditCardsHTML(){
             <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Date</th>
             <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Description</th>
             <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Type</th>
-            <th style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Amount</th>
+            <th style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Amount (USD / ZMW)</th>
             <th style="width:36px"></th>
           </tr></thead>
           <tbody>${txRows}</tbody>
@@ -1963,9 +1981,10 @@ function buildCreditCardsHTML(){
           <input type="date" id="ctx-date-${card.id}" value="${todayKey()}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px">
           <input type="text" id="ctx-desc-${card.id}" placeholder="Description (optional)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;flex:2;min-width:130px">
           <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px">
-            <span style="font-size:12px;color:var(--text3);font-weight:700">ZMW</span>
-            <input type="number" id="ctx-amount-${card.id}" min="0" step="0.01" placeholder="0.00" style="background:none;border:none;color:var(--text);font-size:14px;font-weight:700;width:100px;outline:none">
+            <span style="font-size:12px;color:#60a5fa;font-weight:700">USD</span>
+            <input type="number" id="ctx-amount-${card.id}" min="0" step="0.01" placeholder="0.00" oninput="const v=parseFloat(this.value)||0;const el=document.getElementById('ctx-zmw-${card.id}');if(el)el.textContent=v?'≈ '+${JSON.stringify('ZMW ')}+(v*${rate}).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):''" style="background:none;border:none;color:var(--text);font-size:14px;font-weight:700;width:100px;outline:none">
           </div>
+          <span id="ctx-zmw-${card.id}" style="font-size:12px;color:var(--text3);min-width:80px"></span>
           <button onclick="submitCardTx('${card.id}','payment')" style="background:#276749;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">${iconSvg('arrow-down-circle',14,'#fff')} Payment</button>
           <button onclick="submitCardTx('${card.id}','purchase')" style="background:#9b2335;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">${iconSvg('arrow-up-circle',14,'#fff')} Purchase</button>
         </div>
@@ -1974,15 +1993,26 @@ function buildCreditCardsHTML(){
     </div>`;
   }).join('');
 
+  // Exchange rate widget
+  const rateWidget=`<div style="display:flex;align-items:center;gap:10px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:11px;font-family:var(--font-military);letter-spacing:1px;color:#60a5fa">1 USD =</span>
+    <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid rgba(96,165,250,.3);border-radius:6px;padding:5px 10px">
+      <span style="font-size:12px;color:var(--text3);font-weight:700">ZMW</span>
+      <input type="number" id="usd-rate-input" min="1" step="0.01" value="${rate}" style="background:none;border:none;color:var(--text);font-size:14px;font-weight:700;width:70px;outline:none">
+    </div>
+    <button onclick="saveUsdRate()" style="background:#60a5fa;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:var(--font-military);letter-spacing:1px;cursor:pointer">UPDATE RATE</button>
+    <span style="font-size:11px;color:var(--text3)">All credit card figures in USD · ZMW shown as conversion</span>
+  </div>`;
+
   // Add new card form
   const addForm=`<div class="card mb16" style="border:1px dashed var(--border2)">
     <div class="card-title" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${iconSvg('plus-circle',14,'#f5c842')} Add New Card</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CARD NAME</label>
         <input id="new-card-name" type="text" placeholder="e.g. FNB Visa Gold" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
-      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CREDIT LIMIT (ZMW)</label>
-        <input id="new-card-limit" type="number" min="0" step="100" placeholder="e.g. 10000" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
-      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CURRENT BALANCE (ZMW)</label>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CREDIT LIMIT (USD)</label>
+        <input id="new-card-limit" type="number" min="0" step="100" placeholder="e.g. 5000" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CURRENT BALANCE (USD)</label>
         <input id="new-card-opening" type="number" min="0" step="0.01" placeholder="0.00 (if new)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
       <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">INTEREST RATE (% p.a.)</label>
         <input id="new-card-rate" type="number" min="0" step="0.1" placeholder="e.g. 18.5" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
@@ -1993,19 +2023,23 @@ function buildCreditCardsHTML(){
   </div>`;
 
   return `<div id="credit-cards-section">
-    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text" style="display:flex;align-items:center;gap:6px">${iconSvg('credit-card',13,'#4ade80')} Credit Cards</div><div class="divider-line"></div></div>
+    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text" style="display:flex;align-items:center;gap:6px">${iconSvg('credit-card',13,'#4ade80')} Credit Cards <span style="font-size:10px;background:rgba(96,165,250,.15);color:#60a5fa;border-radius:4px;padding:1px 6px;margin-left:4px;font-family:var(--font-military);letter-spacing:1px">USD</span></div><div class="divider-line"></div></div>
+    ${rateWidget}
     ${cards.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
       <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Credit</div>
-        <div style="font-family:var(--font-military);font-size:18px;color:var(--text)">${fmtZMW(totalLimit)}</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:var(--text)">${fmtUSD(totalLimit)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">≈ ${fmtZMWfromUSD(totalLimit)}</div>
       </div>
       <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Owed</div>
-        <div style="font-family:var(--font-military);font-size:18px;color:#f87171">${fmtZMW(totalBal)}</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:#f87171">${fmtUSD(totalBal)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">≈ ${fmtZMWfromUSD(totalBal)}</div>
       </div>
       <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Available</div>
-        <div style="font-family:var(--font-military);font-size:18px;color:#4ade80">${fmtZMW(totalAvail)}</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:#4ade80">${fmtUSD(totalAvail)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">≈ ${fmtZMWfromUSD(totalAvail)}</div>
       </div>
     </div>`:''}
     ${cardItems}
