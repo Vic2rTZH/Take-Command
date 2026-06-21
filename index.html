@@ -576,6 +576,10 @@ const ICON_PATHS = {
   'arrow-up-circle':  '<circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/>',
   'wallet':           '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
   'check-circle':    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  'plus-circle':     '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/>',
+  'trash-2':         '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  'chevron-down':    '<polyline points="6 9 12 15 18 9"/>',
+  'chevron-up':      '<polyline points="18 15 12 9 6 15"/>',
   'alert-triangle':  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>',
   'cpu':             '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" x2="9" y1="1" y2="4"/><line x1="15" x2="15" y1="1" y2="4"/><line x1="9" x2="9" y1="20" y2="23"/><line x1="15" x2="15" y1="20" y2="23"/><line x1="20" x2="23" y1="9" y2="9"/><line x1="20" x2="23" y1="14" y2="14"/><line x1="1" x2="4" y1="9" y2="9"/><line x1="1" x2="4" y1="14" y2="14"/>',
   'mic':             '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
@@ -598,7 +602,7 @@ const SUPA_URL  = 'https://vdlhcxbldiszghofghgi.supabase.co';
 const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkbGhjeGJsZGlzemdob2ZnaGdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDY2NjUsImV4cCI6MjA5NzU4MjY2NX0.28RjGPZdbzJ2gYAfLo6Fn26cQmKp9KFbPnIaBgg0YC8';
 const _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-const TC_SYNC_KEYS = ['tcmd_data','tc_tasks','tc_finance','tc_budget','virgil_logs'];
+const TC_SYNC_KEYS = ['tcmd_data','tc_tasks','tc_finance','tc_budget','tc_cards','virgil_logs'];
 
 async function supabasePush(key, value) {
   const { data: { user } } = await _supa.auth.getUser();
@@ -1746,14 +1750,223 @@ function buildFinanceHTML(){
         ${totalExp>0?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:14px">Total Expenses</span><span style="font-family:'Courier New',monospace;font-size:15px;font-weight:700;color:#f87171">${fmtZMW(totalExp)}</span></div>`:''}
       </div>
     </div>
-    ${mkFinSection('incomes',    '📈 Income',      fmtZMW(totalIncome),  '#4ade80', '#276749', data.incomes)}
-    ${mkFinSection('savings',    '🏦 Savings',     fmtZMW(totalSavings), '#60a5fa', '#2b6cb0', data.savings)}
-    ${mkFinSection('investments','📊 Investments', fmtZMW(totalInvest),  '#a78bfa', '#553c9a', data.investments)}
-    ${mkFinSection('expenses',   '💸 Expenses',    fmtZMW(totalExp),     '#f87171', '#c44040', data.expenses)}
+    ${mkFinSection('incomes',    `${iconSvg('trending-up',14,'#4ade80')} Income`,      fmtZMW(totalIncome),  '#4ade80', '#276749', data.incomes)}
+    ${mkFinSection('savings',    `${iconSvg('wallet',14,'#60a5fa')} Savings`,          fmtZMW(totalSavings), '#60a5fa', '#2b6cb0', data.savings)}
+    ${mkFinSection('investments',`${iconSvg('bar-chart-2',14,'#a78bfa')} Investments`, fmtZMW(totalInvest),  '#a78bfa', '#553c9a', data.investments)}
+    ${mkFinSection('expenses',   `${iconSvg('arrow-up-circle',14,'#f87171')} Expenses`,fmtZMW(totalExp),     '#f87171', '#c44040', data.expenses)}
+    ${buildCreditCardsHTML()}
   </div>`;
 }
 
 
+
+// ================================================================
+//  CREDIT CARDS
+// ================================================================
+function getCards(){
+  try{ return JSON.parse(localStorage.getItem('tc_cards')||'[]'); }catch{ return []; }
+}
+function saveCards(cards){
+  localStorage.setItem('tc_cards', JSON.stringify(cards));
+  supabasePush('tc_cards', cards);
+}
+function cardBalance(card){
+  const tx = card.transactions||[];
+  return (card.openingBalance||0) + tx.reduce((s,t)=>s+(t.type==='purchase'?t.amount:-t.amount),0);
+}
+function cardAvailable(card){ return Math.max(0,(card.limit||0)-cardBalance(card)); }
+function cardUtil(card){ return card.limit>0?Math.min(100,Math.round((cardBalance(card)/card.limit)*100)):0; }
+function utilColor(pct){ return pct>=80?'#f87171':pct>=50?'#fbbf24':'#4ade80'; }
+
+function rerenderCards(){
+  const el=document.getElementById('credit-cards-section');
+  if(el) el.outerHTML=buildCreditCardsHTML();
+}
+
+function submitAddCard(){
+  const name=(document.getElementById('new-card-name')?.value||'').trim();
+  const limit=parseFloat(document.getElementById('new-card-limit')?.value)||0;
+  const opening=parseFloat(document.getElementById('new-card-opening')?.value)||0;
+  const rate=parseFloat(document.getElementById('new-card-rate')?.value)||0;
+  const due=parseInt(document.getElementById('new-card-due')?.value)||1;
+  if(!name||!limit){ showToast('Enter card name and credit limit'); return; }
+  const cards=getCards();
+  cards.push({id:'card_'+Date.now(),name,limit,openingBalance:opening,interestRate:rate,dueDay:due,transactions:[]});
+  saveCards(cards); rerenderCards();
+  showToast('Card added');
+}
+
+function deleteCard(id){
+  if(!confirm('Delete this card and all its transactions?')) return;
+  saveCards(getCards().filter(c=>c.id!==id)); rerenderCards();
+}
+
+function submitCardTx(cardId, type){
+  const amt=parseFloat(document.getElementById('ctx-amount-'+cardId)?.value)||0;
+  const desc=(document.getElementById('ctx-desc-'+cardId)?.value||'').trim();
+  const date=document.getElementById('ctx-date-'+cardId)?.value||todayKey();
+  if(!amt||amt<=0){ showToast('Enter a valid amount'); return; }
+  const cards=getCards();
+  const card=cards.find(c=>c.id===cardId);
+  if(!card) return;
+  card.transactions.push({id:'tx_'+Date.now(),type,amount:amt,description:desc||type,date});
+  saveCards(cards); rerenderCards();
+  showToast(type==='payment'?'Payment logged':'Purchase logged');
+}
+
+function deleteCardTx(cardId, txId){
+  const cards=getCards();
+  const card=cards.find(c=>c.id===cardId);
+  if(!card) return;
+  card.transactions=card.transactions.filter(t=>t.id!==txId);
+  saveCards(cards); rerenderCards();
+}
+
+function toggleCardBody(id){
+  const el=document.getElementById('card-body-'+id);
+  if(!el) return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  const arrow=document.getElementById('card-arrow-'+id);
+  if(arrow) arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+
+function buildCreditCardsHTML(){
+  const cards=getCards();
+  const totalLimit=cards.reduce((s,c)=>s+(c.limit||0),0);
+  const totalBal=cards.reduce((s,c)=>s+cardBalance(c),0);
+  const totalAvail=Math.max(0,totalLimit-totalBal);
+  const overallUtil=totalLimit>0?Math.min(100,Math.round((totalBal/totalLimit)*100)):0;
+
+  const cardItems=cards.map(card=>{
+    const bal=cardBalance(card);
+    const avail=cardAvailable(card);
+    const util=cardUtil(card);
+    const uc=utilColor(util);
+    const isOpen=localStorage.getItem('card_open_'+card.id)!=='0';
+    const txs=[...(card.transactions||[])].sort((a,b)=>b.date.localeCompare(a.date));
+    const nextDue=(()=>{
+      const now=new Date(); const due=new Date(now.getFullYear(),now.getMonth(),card.dueDay);
+      if(due<=now) due.setMonth(due.getMonth()+1);
+      const diff=Math.round((due-now)/86400000);
+      return `${due.toLocaleDateString('en-US',{month:'short',day:'numeric'})} (${diff}d)`;
+    })();
+
+    const txRows=txs.length?txs.map(t=>`
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 8px;font-size:12px;color:var(--text2);white-space:nowrap">${t.date}</td>
+        <td style="padding:7px 8px;font-size:13px">${escHtml(t.description||t.type)}</td>
+        <td style="padding:7px 8px;text-align:center">
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:${t.type==='payment'?'rgba(74,222,128,.15)':'rgba(248,113,113,.15)'};color:${t.type==='payment'?'#4ade80':'#f87171'}">${t.type==='payment'?'PAYMENT':'PURCHASE'}</span>
+        </td>
+        <td style="padding:7px 8px;text-align:right;font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:${t.type==='payment'?'#4ade80':'#f87171'}">${t.type==='payment'?'−':'+'} ${fmtZMW(t.amount)}</td>
+        <td style="padding:7px 8px;text-align:center"><button onclick="deleteCardTx('${card.id}','${t.id}')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--text3)" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">✕</button></td>
+      </tr>`).join('')
+      :'<tr><td colspan="5" style="padding:12px 8px;font-size:13px;color:var(--text3)">No transactions yet.</td></tr>';
+
+    return `<div class="card mb16" style="border-left:3px solid ${uc}">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="toggleCardBody('${card.id}');localStorage.setItem('card_open_${card.id}',document.getElementById('card-body-${card.id}').style.display==='none'?'0':'1')">
+        <div style="display:flex;align-items:center;gap:12px;flex:1">
+          <div>${iconSvg('credit-card',20,uc)}</div>
+          <div>
+            <div style="font-family:var(--font-military);font-size:15px;letter-spacing:1px">${escHtml(card.name)}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Limit: ${fmtZMW(card.limit)} · Due day ${card.dueDay} of each month</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;margin-right:10px">
+          <div style="text-align:right">
+            <div style="font-family:var(--font-military);font-size:18px;color:${uc}">${util}% used</div>
+            <div style="font-size:11px;color:var(--text3)">Next due: ${nextDue}</div>
+          </div>
+          <span id="card-arrow-${card.id}" style="color:var(--text3);transition:transform .2s;display:inline-block;transform:rotate(${isOpen?180:0}deg)">${iconSvg('chevron-down',16,'currentColor')}</span>
+        </div>
+      </div>
+
+      <!-- Balance bar -->
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+        <div style="background:var(--bg4);border-radius:6px;padding:8px">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Balance</div>
+          <div style="font-family:var(--font-military);font-size:16px;color:#f87171">${fmtZMW(bal)}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:8px">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Available</div>
+          <div style="font-family:var(--font-military);font-size:16px;color:#4ade80">${fmtZMW(avail)}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:8px">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Interest</div>
+          <div style="font-family:var(--font-military);font-size:16px;color:var(--text)">${card.interestRate||0}% p.a.</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${util}%;background:${uc};border-radius:3px;transition:width .4s"></div>
+      </div>
+
+      <!-- Transactions + add form -->
+      <div id="card-body-${card.id}" style="display:${isOpen?'block':'none'};margin-top:14px">
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+          <thead><tr style="border-bottom:1px solid var(--border2)">
+            <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Date</th>
+            <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Description</th>
+            <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Type</th>
+            <th style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Amount</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody>${txRows}</tbody>
+        </table>
+        <!-- Add transaction row -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-top:10px;border-top:1px solid var(--border)">
+          <input type="date" id="ctx-date-${card.id}" value="${todayKey()}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px">
+          <input type="text" id="ctx-desc-${card.id}" placeholder="Description (optional)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;flex:2;min-width:130px">
+          <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px">
+            <span style="font-size:12px;color:var(--text3);font-weight:700">ZMW</span>
+            <input type="number" id="ctx-amount-${card.id}" min="0" step="0.01" placeholder="0.00" style="background:none;border:none;color:var(--text);font-size:14px;font-weight:700;width:100px;outline:none">
+          </div>
+          <button onclick="submitCardTx('${card.id}','payment')" style="background:#276749;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">${iconSvg('arrow-down-circle',14,'#fff')} Payment</button>
+          <button onclick="submitCardTx('${card.id}','purchase')" style="background:#9b2335;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">${iconSvg('arrow-up-circle',14,'#fff')} Purchase</button>
+        </div>
+        <button onclick="deleteCard('${card.id}')" style="margin-top:12px;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--text3)'">${iconSvg('trash-2',12,'currentColor')} Remove card</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Add new card form
+  const addForm=`<div class="card mb16" style="border:1px dashed var(--border2)">
+    <div class="card-title" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${iconSvg('plus-circle',14,'#f5c842')} Add New Card</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CARD NAME</label>
+        <input id="new-card-name" type="text" placeholder="e.g. FNB Visa Gold" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CREDIT LIMIT (ZMW)</label>
+        <input id="new-card-limit" type="number" min="0" step="100" placeholder="e.g. 10000" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CURRENT BALANCE (ZMW)</label>
+        <input id="new-card-opening" type="number" min="0" step="0.01" placeholder="0.00 (if new)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">INTEREST RATE (% p.a.)</label>
+        <input id="new-card-rate" type="number" min="0" step="0.1" placeholder="e.g. 18.5" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">PAYMENT DUE DAY</label>
+        <input id="new-card-due" type="number" min="1" max="28" placeholder="e.g. 15" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+    </div>
+    <button onclick="submitAddCard()" style="background:var(--gold);color:#000;border:none;border-radius:6px;padding:9px 22px;font-family:var(--font-military);font-size:14px;letter-spacing:1px;cursor:pointer">ADD CARD</button>
+  </div>`;
+
+  return `<div id="credit-cards-section">
+    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text" style="display:flex;align-items:center;gap:6px">${iconSvg('credit-card',13,'#4ade80')} Credit Cards</div><div class="divider-line"></div></div>
+    ${cards.length?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Credit</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:var(--text)">${fmtZMW(totalLimit)}</div>
+      </div>
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Owed</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:#f87171">${fmtZMW(totalBal)}</div>
+      </div>
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Available</div>
+        <div style="font-family:var(--font-military);font-size:18px;color:#4ade80">${fmtZMW(totalAvail)}</div>
+      </div>
+    </div>`:''}
+    ${cardItems}
+    ${addForm}
+  </div>`;
+}
 
 // ================================================================
 //  FINANCIAL TREND CHARTS
