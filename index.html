@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Take Command">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -399,7 +400,7 @@ input,select,textarea,button{font-family:inherit}
 const DOMAINS = [
   {
     id:'spiritual', name:'Spiritual', subtitle:'Center of Gravity (COG)',
-    icon:'⚔️', color:'#d4a017',
+    icon:'⚔️', iconName:'flame', color:'#d4a017',
     book_quote:'"In war, the moral is to the physical as three is to one." — Napoleon',
     metrics:[
       {id:'prayer_min',      label:'Prayer / Meditation',        unit:'min/day', target:30,  type:'number', min:0, max:120},
@@ -419,7 +420,7 @@ const DOMAINS = [
   },
   {
     id:'physical', name:'Physical', subtitle:'First Line of Defense',
-    icon:'🛡️', color:'#2b6cb0',
+    icon:'🛡️', iconName:'shield', color:'#2b6cb0',
     book_quote:'"Fatigue makes cowards of us all." — Vince Lombardi',
     metrics:[
       {id:'steps',         label:'Daily Steps',          unit:'steps',  target:10000, type:'number', min:0, max:30000},
@@ -448,7 +449,7 @@ const DOMAINS = [
   },
   {
     id:'financial', name:'Financial', subtitle:"Life's Logistics",
-    icon:'💰', color:'#276749',
+    icon:'💰', iconName:'dollar-sign', color:'#276749',
     book_quote:'"No logistics, no movement; no movement, no victory."',
     metrics:[
       {id:'income_stability', label:'Income Stability',     unit:'/10', target:10, type:'slider', min:0, max:10},
@@ -468,7 +469,7 @@ const DOMAINS = [
   },
   {
     id:'relational', name:'Relational', subtitle:'Human Terrain',
-    icon:'🤝', color:'#6b46c1',
+    icon:'🤝', iconName:'users', color:'#6b46c1',
     book_quote:'"No general wins alone." — Take Command',
     metrics:[
       {id:'family_time',     label:'Quality Family Time',      unit:'hrs/wk', target:15, type:'number', min:0, max:50},
@@ -488,7 +489,7 @@ const DOMAINS = [
   },
   {
     id:'creational', name:'Creational', subtitle:'Your Contribution',
-    icon:'🔱', color:'#c05621',
+    icon:'🔱', iconName:'zap', color:'#c05621',
     book_quote:'"If you are not creating, you are declining." — Take Command',
     metrics:[
       {id:'creative_hrs',   label:'Creative Work Hours',   unit:'hrs/wk', target:10, type:'number', min:0, max:40},
@@ -508,7 +509,7 @@ const DOMAINS = [
   },
   {
     id:'professional', name:'Professional', subtitle:'Training Ground',
-    icon:'🎖️', color:'#2c7a7b',
+    icon:'🎖️', iconName:'award', color:'#2c7a7b',
     book_quote:'"Excellence is not what you do — it\'s who you are." — Take Command',
     metrics:[
       {id:'skill_dev_hrs',   label:'Skill Development',        unit:'hrs/wk', target:5,  type:'number', min:0, max:20},
@@ -528,7 +529,7 @@ const DOMAINS = [
   },
   {
     id:'generational', name:'Generational', subtitle:'Fighting the Good Fight',
-    icon:'🏛️', color:'#9b2335',
+    icon:'🏛️', iconName:'landmark', color:'#9b2335',
     book_quote:'"A good man leaves an inheritance to his children\'s children." — Proverbs',
     metrics:[
       {id:'mentoring_hrs',  label:'Mentoring Others',        unit:'hrs/mo', target:8,   type:'number', min:0, max:40},
@@ -547,6 +548,25 @@ const DOMAINS = [
     }
   }
 ];
+
+// ================================================================
+//  ICON HELPER — Lucide SVG
+// ================================================================
+function iconSvg(name, size=16, color='currentColor', sw=1.5) {
+  if (!window.lucide?.icons) return '';
+  // Convert kebab-case to PascalCase for Lucide icon lookup
+  const key = name.split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join('');
+  const icon = window.lucide.icons[key];
+  if (!icon) return '';
+  function renderEl([tag, attrs, children]) {
+    const a = Object.entries(attrs||{}).map(([k,v])=>`${k}="${v}"`).join(' ');
+    const inner = (children||[]).map(renderEl).join('');
+    return `<${tag} ${a}>${inner}</${tag}>`;
+  }
+  const [,,children] = icon;
+  const inner = (children||[]).map(renderEl).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0">${inner}</svg>`;
+}
 
 // ================================================================
 //  SUPABASE — SYNC
@@ -1187,7 +1207,7 @@ function renderTaskRow(t,showDomain,showProgress){
   const dueClass=taskDueClass(t.dueDate);
   const dueLabel=taskDueLabel(t.dueDate);
   const prog=t.progress||0;
-  const domCol=showDomain?`<td style="width:115px"><span class="task-domain-badge" style="border-color:${dom?.color||'var(--border)'}">${dom?.icon||''} ${dom?.name||t.domainId}</span></td>`:'';
+  const domCol=showDomain?`<td style="width:115px"><span class="task-domain-badge" style="border-color:${dom?.color||'var(--border)'}">${dom?.iconName?iconSvg(dom.iconName,12,dom.color):''} ${dom?.name||t.domainId}</span></td>`:'';
   const progCol=showProgress?`<td style="width:130px">
       <div style="display:flex;align-items:center;gap:5px">
         <div class="task-prog-wrap"><div class="task-prog-fill" style="width:${prog}%;background:${prog>=100?'#4ade80':dom?.color||'var(--gold2)'}"></div></div>
@@ -1443,18 +1463,18 @@ function renderExpenseChart(){
 const BUDGET_KEY = 'tc_budget';
 
 const BUDGET_CATS = [
-  {id:'housing',       label:'Housing / Rent',     icon:'🏠', color:'#e53e3e'},
-  {id:'food',          label:'Food & Groceries',   icon:'🛒', color:'#dd6b20'},
-  {id:'transport',     label:'Transport',           icon:'🚗', color:'#d69e2e'},
-  {id:'utilities',     label:'Utilities',           icon:'💡', color:'#38a169'},
-  {id:'health',        label:'Health',              icon:'💊', color:'#3182ce'},
-  {id:'education',     label:'Education',           icon:'📚', color:'#805ad5'},
-  {id:'entertainment', label:'Entertainment',       icon:'🎬', color:'#d53f8c'},
-  {id:'clothing',      label:'Clothing',            icon:'👕', color:'#b7791f'},
-  {id:'family',        label:'Family',              icon:'👨‍👩‍👧', color:'#319795'},
-  {id:'business',      label:'Business',            icon:'💼', color:'#2b6cb0'},
-  {id:'subscriptions', label:'Subscriptions',       icon:'📋', color:'#6b46c1'},
-  {id:'other',         label:'Misc',                icon:'📦', color:'#718096'},
+  {id:'housing',       label:'Housing / Rent',     icon:'🏠', iconName:'home',          color:'#e53e3e'},
+  {id:'food',          label:'Food & Groceries',   icon:'🛒', iconName:'shopping-cart',  color:'#dd6b20'},
+  {id:'transport',     label:'Transport',           icon:'🚗', iconName:'car',            color:'#d69e2e'},
+  {id:'utilities',     label:'Utilities',           icon:'💡', iconName:'zap',            color:'#38a169'},
+  {id:'health',        label:'Health',              icon:'💊', iconName:'heart',          color:'#3182ce'},
+  {id:'education',     label:'Education',           icon:'📚', iconName:'book-open',      color:'#805ad5'},
+  {id:'entertainment', label:'Entertainment',       icon:'🎬', iconName:'film',           color:'#d53f8c'},
+  {id:'clothing',      label:'Clothing',            icon:'👕', iconName:'shirt',          color:'#b7791f'},
+  {id:'family',        label:'Family',              icon:'👨‍👩‍👧', iconName:'users',        color:'#319795'},
+  {id:'business',      label:'Business',            icon:'💼', iconName:'briefcase',      color:'#2b6cb0'},
+  {id:'subscriptions', label:'Subscriptions',       icon:'📋', iconName:'credit-card',    color:'#6b46c1'},
+  {id:'other',         label:'Misc',                icon:'📦', iconName:'package',        color:'#718096'},
 ];
 
 function getBudget() {
@@ -1605,13 +1625,13 @@ function buildFinanceHTML(){
   const net=totalIncome-totalExp;
 
   const summaryCards=[
-    {label:'Income',      val:totalIncome, color:'#4ade80', icon:'📈'},
-    {label:'Savings',     val:totalSavings,color:'#60a5fa', icon:'🏦'},
-    {label:'Investments', val:totalInvest, color:'#a78bfa', icon:'📊'},
-    {label:'Expenses',    val:totalExp,    color:'#f87171', icon:'💸'},
-    {label:'Net',         val:net,         color:net>=0?'#4ade80':'#f87171', icon:net>=0?'✅':'⚠️'},
+    {label:'Income',      val:totalIncome, color:'#4ade80', iconName:'trending-up'},
+    {label:'Savings',     val:totalSavings,color:'#60a5fa', iconName:'piggy-bank'},
+    {label:'Investments', val:totalInvest, color:'#a78bfa', iconName:'bar-chart-2'},
+    {label:'Expenses',    val:totalExp,    color:'#f87171', iconName:'arrow-down-circle'},
+    {label:'Net',         val:net,         color:net>=0?'#4ade80':'#f87171', iconName:net>=0?'check-circle':'alert-triangle'},
   ].map(c=>`<div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-    <div style="font-size:18px;margin-bottom:5px">${c.icon}</div>
+    <div style="margin-bottom:5px">${iconSvg(c.iconName,22,c.color)}</div>
     <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${c.label}</div>
     <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:${c.color};word-break:break-all">${fmtZMW(c.val)}</div>
   </div>`).join('');
@@ -1685,7 +1705,7 @@ function buildFinanceHTML(){
   };
 
   return `<div id="finance-section">
-    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text">💰 Financial Tracker — Zambia Kwacha (ZMW)</div><div class="divider-line"></div></div>
+    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text" style="display:flex;align-items:center;gap:6px">${iconSvg('dollar-sign',13,'#276749')} Financial Tracker — Zambia Kwacha (ZMW)</div><div class="divider-line"></div></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <button onclick="changeFinMonth(-1)" style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:5px 16px;color:var(--text);cursor:pointer;font-size:20px;font-weight:700">‹</button>
       <div style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;color:var(--gold2)">${finMonthLabel(_finMonth)}</div>
@@ -2133,7 +2153,7 @@ function renderDashboard() {
     <div class="d-card" onclick="navigate('domain','${d.id}')" style="border-top:3px solid ${d.color}">
       <div class="d-card-top">
         <div class="d-card-left">
-          <span class="d-card-icon">${d.icon}</span>
+          <span class="d-card-icon">${iconSvg(d.iconName,28,d.color)}</span>
           <div>
             <div class="d-card-name">${d.name}</div>
             <div class="d-card-sub">${d.subtitle}</div>
@@ -2171,7 +2191,7 @@ function renderDashboard() {
           </div>
           <div class="divider"><div class="divider-line"></div><div class="divider-text">domains logged</div><div class="divider-line"></div></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-            ${DOMAINS.map(d=>{const s=domainScore(d.id,today);return `<span class="chip" style="font-size:13px;padding:5px 10px">${d.icon} ${s!==null?s+'%':'—'}</span>`;}).join('')}
+            ${DOMAINS.map(d=>{const s=domainScore(d.id,today);return `<span class="chip" style="font-size:13px;padding:5px 10px;display:inline-flex;align-items:center;gap:5px">${iconSvg(d.iconName,14,d.color)} ${s!==null?s+'%':'—'}</span>`;}).join('')}
           </div>
         </div>
         <div style="margin-top:20px">
@@ -2349,7 +2369,7 @@ function renderDomain(domainId) {
       ${domainId==='financial'?`
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div class="card-title" style="margin:0">💰 Income · Savings · Investments · Expenses</div>
+          <div class="card-title" style="margin:0;display:flex;align-items:center;gap:6px">${iconSvg('dollar-sign',14,'#276749')} Income · Savings · Investments · Expenses</div>
           <div style="display:flex;gap:6px">
             <button class="fin-trend-btn task-filter-btn active" data-period="quarterly" onclick="setFinTrendPeriod('quarterly')">Quarterly</button>
             <button class="fin-trend-btn task-filter-btn" data-period="6m" onclick="setFinTrendPeriod('6m')">6 Months</button>
@@ -3034,7 +3054,7 @@ function renderAI() {
   const scoreRows = scores.map(d=>`
     <div class="report-domain-row">
       <div style="display:flex;align-items:center;gap:8px;width:160px">
-        <span>${d.icon}</span>
+        <span>${iconSvg(d.iconName,16,d.color)}</span>
         <div>
           <div style="font-weight:700;font-size:13px">${d.name}</div>
           <div style="font-size:10px;color:var(--text3)">${d.subtitle}</div>
@@ -3065,31 +3085,31 @@ function renderAI() {
     <div class="mb20">
       <div class="virgil-wrap">
         <div class="virgil-header">
-          <div class="virgil-avatar">⚔</div>
+          <div class="virgil-avatar">${iconSvg('cpu',22,'#f5c842')}</div>
           <div>
             <div class="virgil-name">VIRGIL</div>
             <div class="virgil-status"><span class="virgil-status-dot"></span>${apiKey ? providerLabel + ' Active — Full tactical intelligence' : 'Tactical Mode — Add API key in Settings'}</div>
           </div>
-          <button id="virgil-tts-btn" class="virgil-tts ${virgilTTSOn?'on':''}" onclick="virgilToggleTTS()" title="${virgilTTSOn?'Voice: ON':'Voice: OFF'}" style="margin-left:12px">🔊</button>
+          <button id="virgil-tts-btn" class="virgil-tts ${virgilTTSOn?'on':''}" onclick="virgilToggleTTS()" title="${virgilTTSOn?'Voice: ON':'Voice: OFF'}" style="margin-left:12px">${iconSvg('volume-2',16,'currentColor')}</button>
           <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px" onclick="virgilSaveChat()">💾 Save</button>
-            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px" onclick="virgilExportChat()">📥 Export</button>
-            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px" onclick="virgilOpenLogs()">📚 Logs</button>
+            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:4px" onclick="virgilSaveChat()">${iconSvg('save',13,'currentColor')} Save</button>
+            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:4px" onclick="virgilExportChat()">${iconSvg('download',13,'currentColor')} Export</button>
+            <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:4px" onclick="virgilOpenLogs()">${iconSvg('book-open',13,'currentColor')} Logs</button>
             <button class="tb-btn btn-ghost no-print" style="padding:6px 12px;font-size:12px" onclick="virgilHistory=[];virgilRenderMessages()">✕ Clear</button>
           </div>
         </div>
         <div class="virgil-messages" id="virgil-messages"></div>
         <div class="virgil-quick-btns">
-          <button class="vqbtn" onclick="virgilQuickAsk('Give me a full SITREP')">📊 Full SITREP</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('Give me my battle plan for this week')">🎯 Battle Plan</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('What is my weakest domain and how do I fix it?')">⚠️ Weakest Domain</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('What overdue tasks need immediate action?')">📋 Overdue Tasks</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('How can I improve my spiritual domain?')">⚔️ Spiritual</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('Analyze my financial domain')">💰 Financial</button>
-          <button class="vqbtn" onclick="virgilQuickAsk('How is my physical health domain?')">🛡️ Physical</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('Give me a full SITREP')">${iconSvg('bar-chart-2',13,'currentColor')} Full SITREP</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('Give me my battle plan for this week')">${iconSvg('crosshair',13,'currentColor')} Battle Plan</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('What is my weakest domain and how do I fix it?')">${iconSvg('alert-triangle',13,'currentColor')} Weakest Domain</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('What overdue tasks need immediate action?')">${iconSvg('clock',13,'currentColor')} Overdue Tasks</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('How can I improve my spiritual domain?')">${iconSvg('flame',13,'#d4a017')} Spiritual</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('Analyze my financial domain')">${iconSvg('dollar-sign',13,'#276749')} Financial</button>
+          <button class="vqbtn" onclick="virgilQuickAsk('How is my physical health domain?')">${iconSvg('shield',13,'#2b6cb0')} Physical</button>
         </div>
         <div class="virgil-input-row">
-          <button class="virgil-mic" id="virgil-mic-btn" onclick="virgilToggleMic()" title="Hold to speak (Chrome/Edge)">🎤</button>
+          <button class="virgil-mic" id="virgil-mic-btn" onclick="virgilToggleMic()" title="Hold to speak (Chrome/Edge)">${iconSvg('mic',18,'currentColor')}</button>
           <textarea class="virgil-input" id="virgil-input" placeholder="Ask Virgil anything — or click 🎤 to speak…" rows="1"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();virgilSend()}"
             oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
@@ -3112,7 +3132,7 @@ function renderReports() {
     const s = statusLabel(score);
     return `
     <div class="report-domain-row">
-      <div class="report-d-name">${d.icon} ${d.name}</div>
+      <div class="report-d-name" style="display:flex;align-items:center;gap:6px">${iconSvg(d.iconName,14,d.color)} ${d.name}</div>
       <div class="report-d-bar"><div class="report-d-fill" style="width:${score||0}%;background:${d.color}"></div></div>
       <div class="report-d-score" style="color:${d.color}">${score!==null?score+'%':'—'}</div>
       <div class="report-d-status"><span class="badge ${s.cls}">${s.label}</span></div>
@@ -3127,7 +3147,7 @@ function renderReports() {
     const worst = scores.length ? Math.min(...scores) : null;
     return `
     <div class="metric-row">
-      <span class="metric-label">${d.icon} ${d.name}</span>
+      <span class="metric-label" style="display:flex;align-items:center;gap:6px">${iconSvg(d.iconName,14,d.color)} ${d.name}</span>
       <span class="metric-val" style="color:${d.color}">${avg!==null?avg+'%':'—'}</span>
       <span class="chip">↑${best!==null?best+'%':'—'}</span>
       <span class="chip">↓${worst!==null?worst+'%':'—'}</span>
@@ -3230,7 +3250,7 @@ function renderSettings() {
       </div>
 
       <div class="card mb20" style="border-left:3px solid #4ade80">
-        <div class="card-title">🛡️ Auto-Backup — Profile-Safe Data Protection</div>
+        <div class="card-title" style="display:flex;align-items:center;gap:6px">${iconSvg('shield',14,'#2b6cb0')} Auto-Backup — Profile-Safe Data Protection</div>
         <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">
           Saves your data to a <strong>real file on disk</strong> every time you log anything.
           If you ever open the app in a different browser profile and find no data, it will automatically offer to restore from this file.
@@ -3297,7 +3317,7 @@ function openLogModal(domainId) {
     document.getElementById('log-modal-title').textContent = 'SELECT DOMAIN TO LOG';
     document.getElementById('log-modal-body').innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${DOMAINS.map(d=>`<button class="tb-btn btn-ghost" style="justify-content:flex-start;padding:12px" onclick="openLogModal('${d.id}')">${d.icon} ${d.name}</button>`).join('')}
+        ${DOMAINS.map(d=>`<button class="tb-btn btn-ghost" style="justify-content:flex-start;padding:12px;display:flex;align-items:center;gap:8px" onclick="openLogModal('${d.id}')">${iconSvg(d.iconName,16,d.color)} ${d.name}</button>`).join('')}
       </div>`;
   }
   document.getElementById('log-modal').classList.remove('hidden');
@@ -3610,7 +3630,7 @@ function updateSidebar() {
     const t = trend(d.id);
     const tc = getTasks().filter(tk=>!tk.completed&&tk.domainId===d.id).length;
     return `<div class="nav-item" data-view="domain" data-domain="${d.id}" onclick="navigate('domain','${d.id}')">
-      <span class="nav-icon">${d.icon}</span>
+      <span class="nav-icon">${iconSvg(d.iconName,18,d.color)}</span>
       <span class="nav-label">${d.name}${tc>0?`<span class="task-count-badge">${tc}</span>`:''}</span>
       <span class="nav-score" style="color:${d.color}">${score!==null?score+'%':'--'}</span>
       <span class="nav-trend">${trendHTML(t)}</span>
