@@ -1260,9 +1260,15 @@ function getTasks(){try{return JSON.parse(localStorage.getItem('tc_tasks')||'[]'
 function saveTasks(t){localStorage.setItem('tc_tasks',JSON.stringify(t));autoSyncTaskFile();supabasePush('tc_tasks',t);}
 function genTaskId(){return 'tk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
 
-function addTask(domainId,task,details,dueDate,progress){
+function objProgress(obj){
+  const st=obj.tasks||[];
+  if(!st.length)return obj.progress||0;
+  return Math.round(st.filter(s=>s.done).length/st.length*100);
+}
+
+function addTask(domainId,task,details,dueDate,_p){
   const tasks=getTasks();
-  tasks.push({id:genTaskId(),domainId,task,details:details||'',dueDate:dueDate||'',progress:parseInt(progress)||0,completed:false,completedAt:null,createdAt:todayKey()});
+  tasks.push({id:genTaskId(),domainId,task,details:details||'',dueDate:dueDate||'',tasks:[],completed:false,completedAt:null,createdAt:todayKey()});
   saveTasks(tasks);
 }
 
@@ -1274,11 +1280,40 @@ function updateTaskField(id,field,value){
   saveTasks(tasks);
 }
 
+function addSubTask(objId,text){
+  const tasks=getTasks();
+  const obj=tasks.find(t=>t.id===objId);
+  if(!obj)return;
+  if(!obj.tasks)obj.tasks=[];
+  obj.tasks.push({id:'st_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),text,done:false});
+  saveTasks(tasks);
+}
+
+function toggleSubTask(objId,stId){
+  const tasks=getTasks();
+  const obj=tasks.find(t=>t.id===objId);
+  if(!obj||!obj.tasks)return;
+  const st=obj.tasks.find(s=>s.id===stId);
+  if(st)st.done=!st.done;
+  saveTasks(tasks);
+  rerenderTaskArea();
+}
+
+function deleteSubTask(objId,stId){
+  const tasks=getTasks();
+  const obj=tasks.find(t=>t.id===objId);
+  if(!obj)return;
+  obj.tasks=(obj.tasks||[]).filter(s=>s.id!==stId);
+  saveTasks(tasks);
+  rerenderTaskArea();
+}
+
 function completeTask(id){
   const tasks=getTasks();
   const t=tasks.find(t=>t.id===id);
   if(!t)return;
-  t.completed=true; t.completedAt=todayKey(); t.progress=100;
+  t.completed=true; t.completedAt=todayKey();
+  if(t.tasks)t.tasks.forEach(s=>s.done=true);
   saveTasks(tasks);
 }
 
@@ -1340,48 +1375,72 @@ function handleTaskComplete(id,cb){
   if(row){row.style.transition='opacity .35s';row.style.opacity='0.3';}
   updateSidebar();
   setTimeout(()=>rerenderTaskArea(),420);
-  showToast('✓ Task complete — removed from active list');
+  showToast('✓ Objective complete — removed from active list');
 }
 
-function renderTaskRow(t,showDomain,showProgress){
+function renderSubTaskList(obj){
+  const sts=obj.tasks||[];
+  const rows=sts.map(s=>`
+    <div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${s.done?'checked':''} style="accent-color:var(--gold2);cursor:pointer;flex-shrink:0" onchange="toggleSubTask('${obj.id}','${s.id}')">
+      <span style="flex:1;font-size:12px;color:${s.done?'var(--text3)':'var(--text)'};text-decoration:${s.done?'line-through':'none'}">${escHtml(s.text)}</span>
+      <button onclick="deleteSubTask('${obj.id}','${s.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:0 2px" title="Remove task">✕</button>
+    </div>`).join('');
+  return `<div id="stlist-${obj.id}" style="margin-top:8px;padding:6px 8px;background:var(--bg4);border-radius:6px;display:none">
+    ${rows}
+    <div style="display:flex;gap:6px;margin-top:7px">
+      <input type="text" id="stin-${obj.id}" class="form-input" placeholder="+ Add task…" style="padding:5px 8px;font-size:12px;flex:1" onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v){addSubTask('${obj.id}',v);this.value='';rerenderTaskArea();}}">
+      <button class="tb-btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="const v=document.getElementById('stin-${obj.id}').value.trim();if(v){addSubTask('${obj.id}',v);rerenderTaskArea();}">Add</button>
+    </div>
+  </div>`;
+}
+
+function renderTaskRow(t,showDomain){
   const dom=DOMAINS.find(d=>d.id===t.domainId);
   const dueClass=taskDueClass(t.dueDate);
   const dueLabel=taskDueLabel(t.dueDate);
-  const prog=t.progress||0;
+  const prog=objProgress(t);
+  const sts=t.tasks||[];
+  const stCount=sts.length;
+  const stDone=sts.filter(s=>s.done).length;
   const domCol=showDomain?`<td style="width:115px"><span class="task-domain-badge" style="border-color:${dom?.color||'var(--border)'}">${dom?.iconName?iconSvg(dom.iconName,12,dom.color):''} ${dom?.name||t.domainId}</span></td>`:'';
-  const progCol=showProgress?`<td style="width:130px">
-      <div style="display:flex;align-items:center;gap:5px">
-        <div class="task-prog-wrap"><div class="task-prog-fill" style="width:${prog}%;background:${prog>=100?'#4ade80':dom?.color||'var(--gold2)'}"></div></div>
-        <input type="number" min="0" max="100" value="${prog}" style="width:40px;background:var(--bg4);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:12px;text-align:center" onchange="updateTaskField('${t.id}','progress',Math.min(100,Math.max(0,parseInt(this.value)||0)));rerenderTaskArea()"><span style="font-size:11px;color:var(--text3)">%</span>
-      </div>
-    </td>`:'';
   return `<tr id="trow-${t.id}">
     <td style="width:30px;text-align:center;vertical-align:top;padding-top:13px">
-      <input type="checkbox" class="task-cb" onchange="handleTaskComplete('${t.id}',this)" title="Mark complete">
+      <input type="checkbox" class="task-cb" onchange="handleTaskComplete('${t.id}',this)" title="Mark objective complete">
     </td>
     ${domCol}
     <td>
       <div class="task-name" contenteditable="true" spellcheck="false" onblur="updateTaskField('${t.id}','task',this.textContent.trim())">${escHtml(t.task)}</div>
       <div class="task-detail" contenteditable="true" spellcheck="false" onblur="updateTaskField('${t.id}','details',this.textContent.trim())">${escHtml(t.details||'Add details…')}</div>
+      <div style="margin-top:6px">
+        <button onclick="const el=document.getElementById('stlist-${t.id}');el.style.display=el.style.display==='none'?'block':'none'" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 8px">
+          ${stCount?`${stDone}/${stCount} tasks`:'+ Tasks'}
+        </button>
+      </div>
+      ${renderSubTaskList(t)}
     </td>
     <td style="width:130px">
       <input type="date" value="${t.dueDate||''}" style="background:var(--bg4);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 7px;font-size:13px;cursor:pointer;width:100%" onchange="updateTaskField('${t.id}','dueDate',this.value);rerenderTaskArea()">
       <div class="task-due ${dueClass}">${dueLabel}</div>
     </td>
-    ${progCol}
+    <td style="width:110px">
+      <div style="display:flex;align-items:center;gap:5px">
+        <div class="task-prog-wrap"><div class="task-prog-fill" style="width:${prog}%;background:${prog>=100?'#4ade80':dom?.color||'var(--gold2)'}"></div></div>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">${prog}%</span>
+      </div>
+    </td>
     <td style="width:44px">
-      <button class="task-btn del" onclick="deleteTask('${t.id}');rerenderTaskArea();updateSidebar()" title="Delete task">✕</button>
+      <button class="task-btn del" onclick="deleteTask('${t.id}');rerenderTaskArea();updateSidebar()" title="Delete objective">✕</button>
     </td>
   </tr>`;
 }
 
-function renderTaskTable(tasks,showDomain,showProgress){
-  if(!tasks.length)return'<div class="task-empty">No tasks here. Add one below ↓</div>';
+function renderTaskTable(tasks,showDomain){
+  if(!tasks.length)return'<div class="task-empty">No objectives here. Add one below ↓</div>';
   const domCol=showDomain?'<th>Domain</th>':'';
-  const progCol=showProgress?'<th>Progress</th>':'';
   return `<div style="overflow-x:auto"><table class="task-table">
-    <thead><tr><th></th>${domCol}<th>Task / Details</th><th>Due Date</th>${progCol}<th></th></tr></thead>
-    <tbody>${tasks.map(t=>renderTaskRow(t,showDomain,showProgress)).join('')}</tbody>
+    <thead><tr><th></th>${domCol}<th>Objective / Tasks</th><th>Due Date</th><th>Progress</th><th></th></tr></thead>
+    <tbody>${tasks.map(t=>renderTaskRow(t,showDomain)).join('')}</tbody>
   </table></div>`;
 }
 
@@ -1391,21 +1450,21 @@ function renderAddTaskForm(domainId){
     :`<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;font-weight:700;letter-spacing:1px">DOMAIN</label><select id="ntask-domain" class="form-input" style="padding:8px 10px">${DOMAINS.map(d=>`<option value="${d.id}">${d.icon} ${d.name}</option>`).join('')}</select></div>`;
   const gridCols=domainId?'1fr':'1fr 1fr';
   return `<div class="task-add-form" id="task-add-form" style="display:none">
-    <div style="font-family:'Courier New',Consolas,monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:12px">+ New Task</div>
+    <div style="font-family:'Courier New',Consolas,monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:12px">+ New Objective</div>
     <div style="display:grid;grid-template-columns:${gridCols};gap:10px;margin-bottom:10px">
       ${domField}
       <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;font-weight:700;letter-spacing:1px">DUE DATE</label><input type="date" id="ntask-due" class="form-input" style="padding:8px 10px"></div>
     </div>
     <div style="margin-bottom:10px">
-      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;font-weight:700;letter-spacing:1px">TASK</label>
-      <input type="text" id="ntask-name" class="form-input" placeholder="What needs to be done?" style="padding:9px 12px" onkeydown="if(event.key==='Enter')submitAddTask('${domainId||''}')">
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;font-weight:700;letter-spacing:1px">OBJECTIVE</label>
+      <input type="text" id="ntask-name" class="form-input" placeholder="What is the objective?" style="padding:9px 12px" onkeydown="if(event.key==='Enter')submitAddTask('${domainId||''}')">
     </div>
     <div style="margin-bottom:12px">
       <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;font-weight:700;letter-spacing:1px">DETAILS</label>
       <input type="text" id="ntask-details" class="form-input" placeholder="Notes, context, next steps…" style="padding:9px 12px">
     </div>
     <div style="display:flex;gap:8px">
-      <button class="tb-btn btn-gold" onclick="submitAddTask('${domainId||''}')">+ Add Task</button>
+      <button class="tb-btn btn-gold" onclick="submitAddTask('${domainId||''}')">+ Add Objective</button>
       <button class="tb-btn btn-ghost" onclick="document.getElementById('task-add-form').style.display='none'">Cancel</button>
     </div>
   </div>`;
@@ -1416,9 +1475,9 @@ function submitAddTask(domainId){
   const task=(document.getElementById('ntask-name')?.value||'').trim();
   const details=(document.getElementById('ntask-details')?.value||'').trim();
   const dueDate=document.getElementById('ntask-due')?.value||'';
-  if(!task){showToast('⚠ Task name required');document.getElementById('ntask-name')?.focus();return;}
+  if(!task){showToast('⚠ Objective name required');document.getElementById('ntask-name')?.focus();return;}
   addTask(d,task,details,dueDate,0);
-  showToast('Task added');
+  showToast('Objective added');
   updateSidebar();
   rerenderTaskArea();
   document.getElementById('task-add-form').style.display='none';
@@ -1433,9 +1492,9 @@ function renderDomainTasks(domainId){
   el.innerHTML=`
     <div class="task-filter-bar">
       <span style="font-size:14px;font-weight:700;color:var(--text2)">${tasks.length} active${done?' &nbsp;·&nbsp; <span style="color:#4ade80">'+done+' completed</span>':''}</span>
-      <button class="tb-btn btn-gold no-print" style="margin-left:auto;padding:6px 14px;font-size:12px" onclick="document.getElementById('task-add-form').style.display='block';document.getElementById('ntask-name').focus()">+ Add Task</button>
+      <button class="tb-btn btn-gold no-print" style="margin-left:auto;padding:6px 14px;font-size:12px" onclick="document.getElementById('task-add-form').style.display='block';document.getElementById('ntask-name').focus()">+ Add Objective</button>
     </div>
-    ${renderTaskTable(tasks,false,false)}
+    ${renderTaskTable(tasks,false)}
     ${renderAddTaskForm(domainId)}`;
 }
 
@@ -1455,7 +1514,7 @@ function renderDashboardTasks(filter){
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:13px;color:var(--text2);font-weight:600">Overall Completion</span>
-        <span style="font-family:'Courier New',Consolas,monospace;font-size:15px;font-weight:700;color:${pct>=75?'#4ade80':pct>=40?'var(--gold2)':'var(--text2)'}">${totalDone} / ${totalAll} tasks &nbsp;·&nbsp; ${pct}%</span>
+        <span style="font-family:'Courier New',Consolas,monospace;font-size:15px;font-weight:700;color:${pct>=75?'#4ade80':pct>=40?'var(--gold2)':'var(--text2)'}">${totalDone} / ${totalAll} objectives &nbsp;·&nbsp; ${pct}%</span>
       </div>
       <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:${pct>=75?'#4ade80':pct>=40?'var(--gold2)':'#2b6cb0'};border-radius:4px;transition:width .5s"></div>
@@ -1463,11 +1522,11 @@ function renderDashboardTasks(filter){
     </div>
     <div class="task-filter-bar" style="margin-bottom:16px">
       ${['today','week','month','all'].map(f=>`<button class="task-filter-btn${f===filter?' active':''}" onclick="renderDashboardTasks('${f}')">${{today:'Today',week:'This Week',month:'This Month',all:'All Active'}[f]}</button>`).join('')}
-      <span style="margin-left:8px;font-size:13px;color:var(--text2)">${tasks.length} task${tasks.length!==1?'s':''}</span>
+      <span style="margin-left:8px;font-size:13px;color:var(--text2)">${tasks.length} objective${tasks.length!==1?'s':''}</span>
       ${overdueCount?`<span class="badge" style="background:rgba(196,64,64,.2);color:#f87171;border:1px solid rgba(196,64,64,.3)">⚠ ${overdueCount} overdue</span>`:''}
-      <button class="tb-btn btn-gold no-print" style="margin-left:auto;padding:6px 14px;font-size:12px" onclick="document.getElementById('dash-task-add').style.display='block';document.getElementById('ntask-name')?.focus()">+ Add Task</button>
+      <button class="tb-btn btn-gold no-print" style="margin-left:auto;padding:6px 14px;font-size:12px" onclick="document.getElementById('dash-task-add').style.display='block';document.getElementById('ntask-name')?.focus()">+ Add Objective</button>
     </div>
-    ${renderTaskTable(tasks,true,true)}
+    ${renderTaskTable(tasks,true)}
     <div id="dash-task-add" style="display:none">${renderAddTaskForm(null)}</div>`;
   // rewire add form inside dash so it shows
   const addBtn=el.querySelector('button[onclick*="dash-task-add"]');
@@ -3174,9 +3233,12 @@ function virgilGetContext() {
 }
 
 function virgilSystemPrompt(ctx) {
-  const taskList = ctx.tasks.slice(0, 20).map(t =>
-    `  [${t.id}] [${t.domainId}] ${t.task}${t.dueDate ? ' (due '+t.dueDate+')' : ''} — ${t.progress||0}%${t.dueDate && t.dueDate < ctx.today ? ' OVERDUE' : ''}`
-  ).join('\n') || '  (none)';
+  const taskList = ctx.tasks.slice(0, 20).map(t => {
+    const prog = objProgress(t);
+    const sts = (t.tasks||[]);
+    const stSummary = sts.length ? ` [${sts.filter(s=>s.done).length}/${sts.length} tasks]` : '';
+    return `  [${t.id}] [${t.domainId}] ${t.task}${t.dueDate ? ' (due '+t.dueDate+')' : ''} — ${prog}%${stSummary}${t.dueDate && t.dueDate < ctx.today ? ' OVERDUE' : ''}`;
+  }).join('\n') || '  (none)';
 
   const domainIds = DOMAINS.map(d => `${d.id} = ${d.name}`).join(', ');
 
@@ -3190,28 +3252,27 @@ Overall Combat Readiness: ${ctx.overall !== null ? ctx.overall + '%' : 'No data 
 Domain Scores:
 ${ctx.scores.map(s => `  ${s.icon} ${s.name} (${s.subtitle}): ${s.score !== null ? s.score + '%' : 'No data'} — ${s.status} ${s.trend === 'up' ? '▲' : s.trend === 'down' ? '▼' : '—'}`).join('\n')}
 
-Active Tasks (${ctx.tasks.length} total, ${ctx.overdueTasks.length} overdue):
+Active Objectives (${ctx.tasks.length} total, ${ctx.overdueTasks.length} overdue):
 ${taskList}
 
-Domain IDs for task commands: ${domainIds}
+Domain IDs for objective commands: ${domainIds}
 
-== TASK MANAGEMENT COMMANDS — MANDATORY ==
-CRITICAL RULE: When the user asks you to add, complete, or update a task, you MUST embed the command tag below. Simply describing or saying "I've added the task" WITHOUT the tag does NOTHING — the tag is what actually executes the action in the app. No tag = no task created.
+== OBJECTIVE MANAGEMENT COMMANDS — MANDATORY ==
+CRITICAL RULE: When the user asks you to add, complete, or update an objective, you MUST embed the command tag below. Simply describing or saying "I've added the objective" WITHOUT the tag does NOTHING — the tag is what actually executes the action in the app. No tag = no objective created.
 
-To ADD a task:      <<ADD_TASK:domainId:Task description:YYYY-MM-DD>>
-  (no due date:     <<ADD_TASK:domainId:Task description:>>)
-To COMPLETE a task: <<COMPLETE_TASK:taskId>>
-  (only use task IDs from the active task list above)
-To UPDATE progress: <<UPDATE_PROGRESS:taskId:percentage>>
+To ADD an objective: <<ADD_TASK:domainId:Objective description:YYYY-MM-DD>>
+  (no due date:       <<ADD_TASK:domainId:Objective description:>>)
+To COMPLETE an objective: <<COMPLETE_TASK:objectiveId>>
+  (only use IDs from the active objective list above)
 
 EXAMPLES:
-User: "add a task to financial to set up savings by Friday"
+User: "add an objective to financial to set up savings by Friday"
 You must include: <<ADD_TASK:financial:Set up savings account:2026-06-06>>
 
-User: "add task under spiritual to read Book 1 by tomorrow"
+User: "add objective under spiritual to read Book 1 by tomorrow"
 You must include: <<ADD_TASK:spiritual:Read Book 1:2026-06-04>>
 
-User: "mark the workout task complete"
+User: "mark the workout objective complete"
 You must include: <<COMPLETE_TASK:tk_abc123_xyz>>
 
 You may include multiple tags in one response.
@@ -3574,27 +3635,14 @@ function virgilParseAndExecuteActions(text) {
     const task = getTasks().find(t => t.id === taskId.trim());
     if (task) {
       completeTask(taskId.trim());
-      executed.push(`✅ Task marked complete: "${task.task}"`);
-    }
-    cleaned = cleaned.replace(full, '');
-  }
-
-  // UPDATE_PROGRESS
-  const progressRe = /<<UPDATE_PROGRESS:([^:]+):(\d+)>>/g;
-  while ((m = progressRe.exec(text)) !== null) {
-    const [full, taskId, pct] = m;
-    const task = getTasks().find(t => t.id === taskId.trim());
-    if (task) {
-      updateTaskField(taskId.trim(), 'progress', Math.min(100, Math.max(0, parseInt(pct))));
-      executed.push(`✅ Progress updated: "${task.task}" → ${pct}%`);
+      executed.push(`✅ Objective marked complete: "${task.task}"`);
     }
     cleaned = cleaned.replace(full, '');
   }
 
   if (executed.length) {
     updateSidebar();
-    // Append a task-action confirmation block to the cleaned text
-    cleaned = cleaned.trim() + '\n\n**— Task Actions Executed —**\n' + executed.join('\n');
+    cleaned = cleaned.trim() + '\n\n**— Objective Actions Executed —**\n' + executed.join('\n');
   }
 
   return cleaned.trim();
@@ -3612,9 +3660,9 @@ function virgilHandleTaskCommand(msg, ctx) {
     if (task) {
       completeTask(task.id);
       updateSidebar();
-      return `✅ Task marked complete: **"${task.task}"**\n\nGood execution, ${ctx.name}. Mission element closed. What's next?`;
+      return `✅ Objective marked complete: **"${task.task}"**\n\nGood execution, ${ctx.name}. Mission element closed. What's next?`;
     }
-    return `I couldn't find an active task matching "${completeMatch[1]}". Say "show my tasks" to see the full list.`;
+    return `I couldn't find an active objective matching "${completeMatch[1]}". Say "show my objectives" to see the full list.`;
   }
 
   // Flexible add-task detection — handles many phrasings
@@ -3673,37 +3721,23 @@ function virgilHandleTaskCommand(msg, ctx) {
 
     addTask(dom.id, cleanTask, '', dueDate, 0);
     updateSidebar();
-    return `✅ Task added to **${dom.icon} ${dom.name}**: "${cleanTask}"${dueDate ? ' — due ' + dueDate : ''}\n\n**Order:** Log progress on this task daily.`;
+    return `✅ Objective added to **${dom.icon} ${dom.name}**: "${cleanTask}"${dueDate ? ' — due ' + dueDate : ''}\n\n**Order:** Break it down into tasks and execute.`;
   }
 
-  // "update / set progress on [task] to [N]%"
-  const progressMatch = msg.match(/(?:update|set)\s+(?:progress\s+(?:on|for)\s+)?[""']?(.+?)[""']?\s+(?:to|at)\s+(\d+)\s*%/i);
-  if (progressMatch) {
-    const search = progressMatch[1].trim().toLowerCase();
-    const pct = Math.min(100, Math.max(0, parseInt(progressMatch[2])));
-    const task = getTasks().filter(t => !t.completed).find(t => t.task.toLowerCase().includes(search));
-    if (task) {
-      updateTaskField(task.id, 'progress', pct);
-      updateSidebar();
-      return `✅ Progress updated: **"${task.task}"** → **${pct}%**\n\n${pct >= 75 ? 'Almost there — push through to the objective.' : 'Keep advancing. Steady progress wins campaigns.'}`;
-    }
-    return `Couldn't find a task matching "${progressMatch[1]}". Check the task list.`;
-  }
-
-  // "show / list my tasks"
-  if (/show|list|what are|display/.test(lower) && /task/.test(lower)) {
+  // "show / list my objectives/tasks"
+  if (/show|list|what are|display/.test(lower) && /task|objective/.test(lower)) {
     const tasks = getTasks().filter(t => !t.completed);
-    if (!tasks.length) return `No active tasks in the system, ${ctx.name}. Say "add task [name] to [domain]" to create one.`;
+    if (!tasks.length) return `No active objectives in the system, ${ctx.name}. Say "add objective [name] to [domain]" to create one.`;
     const byDomain = {};
     tasks.forEach(t => { if (!byDomain[t.domainId]) byDomain[t.domainId] = []; byDomain[t.domainId].push(t); });
     const lines = Object.entries(byDomain).map(([did, ts]) => {
       const dom = DOMAINS.find(d => d.id === did);
-      return `**${dom?.icon||''} ${dom?.name||did}**\n${ts.map(t => `  • ${t.task}${t.dueDate ? ' (due '+t.dueDate+')' : ''} — ${t.progress||0}%`).join('\n')}`;
+      return `**${dom?.icon||''} ${dom?.name||did}**\n${ts.map(t => { const p=objProgress(t); const sts=t.tasks||[]; return `  • ${t.task}${t.dueDate ? ' (due '+t.dueDate+')' : ''} — ${p}%${sts.length?' ['+sts.filter(s=>s.done).length+'/'+sts.length+' tasks]':''}`; }).join('\n')}`;
     });
-    return `**Active Task Roster — ${tasks.length} tasks:**\n\n${lines.join('\n\n')}`;
+    return `**Active Objectives — ${tasks.length} total:**\n\n${lines.join('\n\n')}`;
   }
 
-  return null; // not a task command
+  return null; // not an objective command
 }
 
 // ── VIRGIL LOGS ──
