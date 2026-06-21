@@ -243,6 +243,11 @@ input,select,textarea,button{font-family:inherit}
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {
+  /* Prevent any content from causing horizontal scroll/zoom */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  #main { overflow-x: hidden; max-width: 100vw; }
+  #content { overflow-x: hidden; }
+
   /* Sidebar: hidden by default, slides in when .open */
   #sidebar {
     transform: translateX(-100%);
@@ -280,12 +285,14 @@ input,select,textarea,button{font-family:inherit}
   /* Finance summary 5-col → 2-col */
   #finance-section > div[style*="repeat(5"] { grid-template-columns: repeat(2,1fr) !important; }
 
-  /* Budget table: scroll horizontally */
-  #budget-section .card > div[style*="grid-template-columns:180px"] {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
+  /* Budget table: wrap in scroller */
+  #budget-section .card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Any fixed-width grid row (budget rows) — let them scroll */
+  [style*="grid-template-columns:180px"] { min-width: 620px; }
+
+  /* Prevent grid children from shrinking past their content */
+  .g2 > *, .g3 > *, .g4 > * { min-width: 0; }
 
   /* Cards in finance/accounts: inline grids single col */
   [style*="grid-template-columns:repeat(3"] { grid-template-columns: 1fr 1fr !important; }
