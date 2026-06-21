@@ -2005,8 +2005,13 @@ function buildCreditCardsHTML(){
   </div>`;
 
   // Add new card form
+  const addCardOpen=localStorage.getItem('card_addform_open')!=='0';
   const addForm=`<div class="card mb16" style="border:1px dashed var(--border2)">
-    <div class="card-title" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${iconSvg('plus-circle',14,'#f5c842')} Add New Card</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="const b=document.getElementById('add-card-body');const open=b.style.display!=='none';b.style.display=open?'none':'block';document.getElementById('add-card-arrow').style.transform=open?'rotate(0deg)':'rotate(180deg)';localStorage.setItem('card_addform_open',open?'0':'1')">
+      <div class="card-title" style="margin:0;display:flex;align-items:center;gap:6px">${iconSvg('plus-circle',14,'#f5c842')} Add New Card</div>
+      <span id="add-card-arrow" style="color:var(--text3);transition:transform .2s;display:inline-block;transform:rotate(${addCardOpen?180:0}deg)">${iconSvg('chevron-down',16,'currentColor')}</span>
+    </div>
+    <div id="add-card-body" style="display:${addCardOpen?'block':'none'};margin-top:14px">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div><label style="font-family:var(--font-military);font-size:12px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CARD NAME</label>
         <input id="new-card-name" type="text" placeholder="e.g. FNB Visa Gold" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
@@ -2020,6 +2025,7 @@ function buildCreditCardsHTML(){
         <input id="new-card-due" type="number" min="1" max="28" placeholder="e.g. 15" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
     </div>
     <button onclick="submitAddCard()" style="background:var(--gold);color:#000;border:none;border-radius:6px;padding:9px 22px;font-family:var(--font-military);font-size:14px;letter-spacing:1px;cursor:pointer">ADD CARD</button>
+    </div>
   </div>`;
 
   return `<div id="credit-cards-section">
