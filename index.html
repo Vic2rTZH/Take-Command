@@ -580,6 +580,8 @@ const ICON_PATHS = {
   'trash-2':         '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
   'chevron-down':    '<polyline points="6 9 12 15 18 9"/>',
   'arrow-right':     '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'edit-2':          '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+  'x':               '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   'smartphone':      '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
   'chevron-up':      '<polyline points="18 15 12 9 6 15"/>',
   'alert-triangle':  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>',
@@ -1542,6 +1544,18 @@ function getBudget() {
 }
 function saveBudget(b) { localStorage.setItem(BUDGET_KEY, JSON.stringify(b)); }
 
+function clearBudgetCat(id){
+  const budget=getBudget();
+  delete budget[id];
+  saveBudget(budget);
+  const el=document.getElementById('bgt-'+id);
+  if(el) el.value='';
+  rerenderFinance();
+  const bel=document.getElementById('budget-section');
+  if(bel) bel.outerHTML=buildBudgetHTML();
+  showToast('Budget cleared for category');
+}
+
 function toggleBudgetSection() {
   const body = document.getElementById('budget-body');
   if (!body) return;
@@ -1593,7 +1607,7 @@ function buildBudgetHTML() {
     const remain = b - s;
     const isOver = s > b && b > 0;
 
-    return `<div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+    return `<div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px 52px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${iconSvg(c.iconName,14,c.color)} ${c.label}</div>
       <div>
         <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px">
@@ -1613,6 +1627,10 @@ function buildBudgetHTML() {
       </div>
       <div style="text-align:right">
         ${b>0 ? `<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${barColor}22;color:${barColor};border:1px solid ${barColor}44">${pct>=100?'OVER BUDGET':pct>=80?'NEAR LIMIT':'ON TRACK'}</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
+        <button onclick="document.getElementById('bgt-${c.id}').focus();document.getElementById('bgt-${c.id}').select()" title="Edit" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f5c842';this.style.borderColor='#f5c842'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('edit-2',12,'currentColor')}</button>
+        <button onclick="clearBudgetCat('${c.id}')" title="Clear budget" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('x',12,'currentColor')}</button>
       </div>
     </div>`;
   }).join('');
@@ -1649,12 +1667,13 @@ function buildBudgetHTML() {
           <div class="card-title" style="margin:0">Set Monthly Budget Targets</div>
           <button class="tb-btn btn-gold no-print" onclick="saveBudgetForm()" style="padding:7px 16px;font-size:12px">💾 Save Budget</button>
         </div>
-        <div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--border2);margin-bottom:4px">
+        <div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px 52px;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--border2);margin-bottom:4px">
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Category</div>
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Budget (ZMW)</div>
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Spent vs Budget</div>
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;text-align:right">Remaining</div>
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;text-align:right">Status</div>
+          <div></div>
         </div>
         ${rows}
         <div style="margin-top:14px;text-align:right">
