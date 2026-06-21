@@ -1429,6 +1429,17 @@ function delFinEntry(month,section,id){
   saveFinance(month,data);
 }
 function delFinEntryAndRefresh(month,section,id){
+  // Remove linked account transaction if any
+  const data=getFinance(month);
+  const entry=data[section]?.find(e=>e.id===id);
+  if(entry?.accId&&entry?.accTxId){
+    const accounts=getAccounts();
+    const acc=accounts.find(a=>a.id===entry.accId);
+    if(acc){
+      acc.transactions=acc.transactions.filter(t=>t.id!==entry.accTxId);
+      saveAccounts(accounts);
+    }
+  }
   delFinEntry(month,section,id); rerenderFinance();
 }
 
@@ -1439,9 +1450,29 @@ function submitFinEntry(section){
   const date=document.getElementById('fin-date-'+section)?.value||todayKey();
   const notes=(document.getElementById('fin-notes-'+section)?.value||'').trim();
   const cat=section==='expenses'?(document.getElementById('fin-cat-expenses')?.value||'other'):'';
+  const accId=document.getElementById('fin-acc-'+section)?.value||'';
   if(!label||isNaN(amount)||amount<=0){showToast('Enter a description and valid amount');return;}
-  addFinEntry(_finMonth,section,{label,amount,date,notes,category:cat});
-  showToast('Entry saved');
+
+  // Link to account if selected
+  let accTxId='';
+  if(accId){
+    const accounts=getAccounts();
+    const acc=accounts.find(a=>a.id===accId);
+    if(acc){
+      // Income = deposit, everything else = withdrawal
+      const txType=section==='incomes'?'deposit':'withdrawal';
+      if(txType==='withdrawal'&&amount>accBalance(acc)){
+        showToast('Insufficient balance in '+acc.name); return;
+      }
+      accTxId='tx_fin_'+Date.now();
+      const sectionLabel={incomes:'Income',savings:'Savings',investments:'Investment',expenses:'Expense'}[section]||section;
+      acc.transactions.push({id:accTxId,type:txType,amount,description:label+' ('+sectionLabel+')',date,finSection:section});
+      saveAccounts(accounts);
+    }
+  }
+
+  addFinEntry(_finMonth,section,{label,amount,date,notes,category:cat,accId,accTxId});
+  showToast('Entry saved'+(accId?' & account updated':''));
   rerenderFinance();
 }
 
@@ -1681,20 +1712,24 @@ function buildFinanceHTML(){
   const mkTable=(section,items)=>{
     if(!items.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0 4px">No entries yet.</div>';
     const hasCat=section==='expenses';
+    const allAccounts=getAccounts();
     return `<table style="width:100%;border-collapse:collapse">
       <thead><tr style="border-bottom:1px solid var(--border2)">
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Date</th>
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Description</th>
         ${hasCat?'<th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Category</th>':''}
+        <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Account</th>
         <th style="text-align:right;padding:5px 8px;font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px">Amount</th>
         <th style="width:36px"></th>
       </tr></thead>
       <tbody>${items.map(e=>{
         const cat=FIN_CATS.find(c=>c.id===e.category);
+        const linkedAcc=e.accId?allAccounts.find(a=>a.id===e.accId):null;
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:8px;font-size:12px;color:var(--text2);white-space:nowrap">${e.date||'—'}</td>
           <td style="padding:8px;font-size:14px">${escHtml(e.label)}${e.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${escHtml(e.notes)}</div>`:''}</td>
           ${hasCat?`<td style="padding:8px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${(cat?.color||'#718096')}22;color:${cat?.color||'#718096'};border:1px solid ${(cat?.color||'#718096')}44">${cat?.label||e.category}</span></td>`:''}
+          <td style="padding:8px">${linkedAcc?`<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${linkedAcc.color}22;color:${linkedAcc.color};border:1px solid ${linkedAcc.color}44;font-weight:700">${iconSvg('landmark',10,linkedAcc.color)} ${escHtml(linkedAcc.name)}</span>`:`<span style="font-size:11px;color:var(--text3)">—</span>`}</td>
           <td style="padding:8px;text-align:right;font-family:'Courier New',monospace;font-size:14px;font-weight:700;white-space:nowrap">${fmtZMW(e.amount)}</td>
           <td style="padding:8px;text-align:center"><button onclick="delFinEntryAndRefresh('${_finMonth}','${section}','${e.id}')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--text3)" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">✕</button></td>
         </tr>`;
@@ -1720,6 +1755,12 @@ function buildFinanceHTML(){
 
   const mkAddForm=(section,btnColor,textColor)=>{
     const catSel=section==='expenses'?`<select id="fin-cat-expenses" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;min-width:150px">${FIN_CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select>`:'';
+    const accounts=getAccounts();
+    const txVerb=section==='incomes'?'Deposit to':'Pay from';
+    const accSel=`<select id="fin-acc-${section}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;min-width:150px">
+      <option value="">— No account link —</option>
+      ${accounts.map(a=>`<option value="${a.id}">${txVerb}: ${escHtml(a.name)}</option>`).join('')}
+    </select>`;
     return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <input type="date" id="fin-date-${section}" value="${todayKey()}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px">
       <input type="text" id="fin-label-${section}" placeholder="Description" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;flex:2;min-width:130px">
@@ -1729,6 +1770,7 @@ function buildFinanceHTML(){
         <input type="number" id="fin-amount-${section}" min="0" step="0.01" placeholder="0.00" style="background:none;border:none;color:var(--text);font-size:14px;font-weight:700;width:110px;outline:none">
       </div>
       <input type="text" id="fin-notes-${section}" placeholder="Notes (optional)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;flex:2;min-width:110px">
+      ${accSel}
       <button onclick="submitFinEntry('${section}')" style="background:${btnColor};color:${textColor};border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Add</button>
     </div>`;
   };
