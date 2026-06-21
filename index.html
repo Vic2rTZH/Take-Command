@@ -2973,8 +2973,8 @@ function renderDashboard() {
         </div>
       </div>
     </div>
-    <div class="g2 mb20" style="grid-template-columns:1.2fr 1fr;gap:18px">
-      <div class="card">
+    <div class="g2 mb20" style="grid-template-columns:1.2fr 1fr;gap:18px;align-items:stretch">
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center">
         <div class="card-title">Quick Stats</div>
         <div class="metric-row"><span class="metric-label">Domains Logged Today</span><span class="metric-val">${DOMAINS.filter(d=>getEntry(today)[d.id]).length}<span class="metric-unit">/7</span></span></div>
         <div class="metric-row"><span class="metric-label">Strongest Domain</span><span class="metric-val" style="font-size:13px;display:flex;align-items:center;gap:5px">${ai.strongest?iconSvg(ai.strongest.iconName,14,ai.strongest.color)+' '+ai.strongest.name:'—'}</span></div>
