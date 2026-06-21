@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Take Command">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root {
@@ -281,6 +282,25 @@ input,select,textarea,button{font-family:inherit}
 </head>
 <body>
 
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:#080a0d;z-index:9999;display:flex;align-items:center;justify-content:center">
+  <div style="background:#0e1117;border:1px solid #252d3d;border-radius:10px;padding:36px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.7)">
+    <div style="font-family:'Courier New',monospace;font-size:18px;font-weight:900;color:#e8b424;letter-spacing:3px;margin-bottom:4px">TAKE COMMAND</div>
+    <div style="font-size:11px;color:#4a5568;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px">Secure Command Access</div>
+    <div id="login-error" style="display:none;background:rgba(196,64,64,.15);border:1px solid rgba(196,64,64,.3);color:#f87171;padding:9px 12px;border-radius:6px;font-size:13px;margin-bottom:14px"></div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:#8fa0b8;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px">Email</label>
+      <input id="login-email" type="email" placeholder="your@email.com" style="width:100%;background:#1c2231;border:1px solid #252d3d;border-radius:6px;color:#dce5f0;padding:10px 12px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:700;color:#8fa0b8;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px">Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••" style="width:100%;background:#1c2231;border:1px solid #252d3d;border-radius:6px;color:#dce5f0;padding:10px 12px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" id="login-btn" style="width:100%;background:#c9990c;color:#000;border:none;border-radius:6px;padding:12px;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer">Enter Command</button>
+    <div id="login-status" style="text-align:center;font-size:12px;color:#4a5568;margin-top:12px"></div>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="sb-head">
@@ -524,6 +544,115 @@ const DOMAINS = [
 ];
 
 // ================================================================
+//  SUPABASE — SYNC
+// ================================================================
+const SUPA_URL  = 'https://vdlhcxbldiszghofghgi.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkbGhjeGJsZGlzemdob2ZnaGdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4MzMzNDEsImV4cCI6MjA2NTQwOTM0MX0.ij9MHCXpqkE-KZhY7dbEjCyCBRYO5gVMEn0BQ-_RJWY';
+const _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+const TC_SYNC_KEYS = ['tcmd_data','tc_tasks','tc_finance','tc_budget','virgil_logs'];
+
+async function supabasePush(key, value) {
+  const { data: { user } } = await _supa.auth.getUser();
+  if (!user) return;
+  await _supa.from('tc_sync').upsert(
+    { user_id: user.id, key, value, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,key' }
+  );
+}
+
+async function supabasePull() {
+  const { data: { user } } = await _supa.auth.getUser();
+  if (!user) return;
+  const { data } = await _supa.from('tc_sync').select('key,value,updated_at').eq('user_id', user.id);
+  if (!data?.length) return;
+  data.forEach(row => {
+    const local = localStorage.getItem(row.key);
+    // Supabase wins if local is empty; merge by updated_at for tcmd_data
+    if (!local) {
+      localStorage.setItem(row.key, JSON.stringify(row.value));
+    } else if (row.key === 'tcmd_data') {
+      try {
+        const localObj = JSON.parse(local);
+        const remoteObj = row.value;
+        // Merge entries: keep newer entry per date
+        const merged = Object.assign({}, remoteObj.entries || {}, localObj.entries || {});
+        // For each date, prefer whichever has newer _ts
+        Object.keys(remoteObj.entries || {}).forEach(date => {
+          const lEntry = localObj.entries?.[date];
+          const rEntry = remoteObj.entries[date];
+          if (!lEntry) { merged[date] = rEntry; return; }
+          // merge domain by domain, newer _ts wins
+          Object.keys(rEntry).forEach(domId => {
+            const lTs = lEntry[domId]?._ts || 0;
+            const rTs = rEntry[domId]?._ts || 0;
+            if (rTs > lTs) merged[date] = Object.assign({}, merged[date], { [domId]: rEntry[domId] });
+          });
+        });
+        const result = Object.assign({}, remoteObj, localObj, { entries: merged });
+        localStorage.setItem(row.key, JSON.stringify(result));
+      } catch(e) {}
+    } else {
+      // For other keys, use whichever is newer (Supabase updated_at vs local)
+      const remoteTime = new Date(row.updated_at).getTime();
+      const localTime = parseInt(localStorage.getItem(row.key + '_ts') || '0');
+      if (remoteTime > localTime) localStorage.setItem(row.key, JSON.stringify(row.value));
+    }
+  });
+  showToast('✓ Data synced from cloud');
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+  const status = document.getElementById('login-status');
+  if (!email || !pass) { showLoginError('Enter email and password'); return; }
+  btn.textContent = 'Connecting…'; btn.disabled = true; err.style.display = 'none';
+  status.textContent = 'Authenticating…';
+  const { error } = await _supa.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    btn.textContent = 'Enter Command'; btn.disabled = false;
+    showLoginError(error.message); status.textContent = '';
+    return;
+  }
+  status.textContent = 'Pulling data from cloud…';
+  await supabasePull();
+  hideLoginOverlay();
+  init();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function hideLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'none';
+}
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+async function checkAuth() {
+  const { data: { session } } = await _supa.auth.getSession();
+  if (session) {
+    await supabasePull();
+    return true;
+  }
+  showLoginOverlay();
+  return false;
+}
+
+async function tcSignOut() {
+  await _supa.auth.signOut();
+  showLoginOverlay();
+  showToast('Signed out');
+}
+
+// ================================================================
 //  STATE
 // ================================================================
 let currentView = 'dashboard';
@@ -544,6 +673,7 @@ function getData() {
 function saveData(d) {
   try { localStorage.setItem('tcmd_data',JSON.stringify(d)); } catch(e){}
   autoBackupToFile();
+  supabasePush('tcmd_data', d);
 }
 
 // ================================================================
@@ -961,7 +1091,7 @@ function generateBattlePlan(scores) {
 //  TASK MANAGEMENT
 // ================================================================
 function getTasks(){try{return JSON.parse(localStorage.getItem('tc_tasks')||'[]');}catch(e){return[];}}
-function saveTasks(t){localStorage.setItem('tc_tasks',JSON.stringify(t));autoSyncTaskFile();}
+function saveTasks(t){localStorage.setItem('tc_tasks',JSON.stringify(t));autoSyncTaskFile();supabasePush('tc_tasks',t);}
 function genTaskId(){return 'tk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
 
 function addTask(domainId,task,details,dueDate,progress){
@@ -1211,6 +1341,7 @@ function getFinance(month){
 function saveFinance(month,data){
   const a=JSON.parse(localStorage.getItem('tc_finance')||'{}');
   a[month]=data; localStorage.setItem('tc_finance',JSON.stringify(a));
+  supabasePush('tc_finance', a);
 }
 function fmtZMW(n){ return 'ZMW '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function finMonthLabel(m){ const [y,mo]=m.split('-'); return new Date(y,parseInt(mo)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
@@ -3699,7 +3830,10 @@ function init() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', async () => {
+  const authed = await checkAuth();
+  if (authed) init();
+});
 </script>
 </body>
 </html>
