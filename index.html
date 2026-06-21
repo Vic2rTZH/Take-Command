@@ -3083,7 +3083,7 @@ function renderDomain(domainId) {
       <div class="tab active" onclick="switchTab(this,'tab-overview')">Overview</div>
       <div class="tab" onclick="switchTab(this,'tab-log')">Log Entry</div>
       <div class="tab" onclick="switchTab(this,'tab-trend')">30-Day Trend</div>
-      <div class="tab" onclick="switchTab(this,'tab-tasks');renderDomainTasks('${domainId}')">Tasks <span id="dtask-badge"></span></div>
+      <div class="tab" onclick="switchTab(this,'tab-tasks');renderDomainTasks('${domainId}')">Objectives <span id="dtask-badge"></span></div>
     </div>
 
     <div id="tab-overview" class="tab-pane active">
@@ -3159,7 +3159,7 @@ function renderDomain(domainId) {
 
     <div id="tab-tasks" class="tab-pane">
       <div class="card">
-        <div class="card-title" style="display:flex;align-items:center;gap:6px">${iconSvg('crosshair',14,'#f5c842')} Domain Tasks</div>
+        <div class="card-title" style="display:flex;align-items:center;gap:6px">${iconSvg('crosshair',14,'#f5c842')} Domain Objectives</div>
         <div id="domain-tasks-area"><div class="task-empty">Loading tasks…</div></div>
       </div>
     </div>`;
