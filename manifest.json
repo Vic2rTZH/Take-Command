@@ -1,7 +1,7 @@
 {
-  "name": "TAKE COMMAND — Battle Domains Tracker",
+  "name": "TAKE COMMAND — 7BD Command Center",
   "short_name": "Take Command",
-  "description": "Track your 7 Battle Domains of Life based on Take Command by Victor Simukonda",
+  "description": "7BD Command Center — Track your 7 Battle Domains of Life based on Take Command by Victor Simukonda",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
