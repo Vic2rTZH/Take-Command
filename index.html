@@ -573,6 +573,8 @@ const ICON_PATHS = {
   'piggy-bank':      '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2z"/><path d="M2 9v1a2 2 0 0 0 2 2h1"/><path d="M16 11h.01"/>',
   'bar-chart-2':     '<line x1="18" x2="18" y1="20" y2="4"/><line x1="12" x2="12" y1="20" y2="14"/><line x1="6" x2="6" y1="20" y2="9"/>',
   'arrow-down-circle':'<circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="m8 12 4 4 4-4"/>',
+  'arrow-up-circle':  '<circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/>',
+  'wallet':           '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
   'check-circle':    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
   'alert-triangle':  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>',
   'cpu':             '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" x2="9" y1="1" y2="4"/><line x1="15" x2="15" y1="1" y2="4"/><line x1="9" x2="9" y1="20" y2="23"/><line x1="15" x2="15" y1="20" y2="23"/><line x1="20" x2="23" y1="9" y2="9"/><line x1="20" x2="23" y1="14" y2="14"/><line x1="1" x2="4" y1="9" y2="9"/><line x1="1" x2="4" y1="14" y2="14"/>',
@@ -1647,9 +1649,9 @@ function buildFinanceHTML(){
 
   const summaryCards=[
     {label:'Income',      val:totalIncome, color:'#4ade80', iconName:'trending-up'},
-    {label:'Savings',     val:totalSavings,color:'#60a5fa', iconName:'piggy-bank'},
+    {label:'Savings',     val:totalSavings,color:'#60a5fa', iconName:'wallet'},
     {label:'Investments', val:totalInvest, color:'#a78bfa', iconName:'bar-chart-2'},
-    {label:'Expenses',    val:totalExp,    color:'#f87171', iconName:'arrow-down-circle'},
+    {label:'Expenses',    val:totalExp,    color:'#f87171', iconName:'arrow-up-circle'},
     {label:'Net',         val:net,         color:net>=0?'#4ade80':'#f87171', iconName:net>=0?'check-circle':'alert-triangle'},
   ].map(c=>`<div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
     <div style="margin-bottom:5px">${iconSvg(c.iconName,22,c.color)}</div>
