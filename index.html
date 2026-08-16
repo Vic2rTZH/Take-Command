@@ -1041,73 +1041,11 @@ function domainScore(domainId, dateKey) {
   if(!dom) return null;
   const effective = getEffectiveDomainEntry(domainId, dateKey);
   const domEntry = effective.data;
-  const manualScores = dom.metrics.map(m=>metricScore(m, domEntry[m.id])).filter(s=>s!==null);
-  const manualAvg = manualScores.length ? Math.round(manualScores.reduce((a,b)=>a+b,0)/manualScores.length) : null;
-
-  if(domainId !== 'financial') {
-    return manualAvg;
-  }
-
-  // --- Live financial score (60% weight) ---
-  const liveComponents = [];
-  try {
-    const month = dateKey ? dateKey.slice(0,7) : (typeof _finMonth !== 'undefined' && _finMonth ? _finMonth : todayKey().slice(0,7));
-    const fin = getFinance(month);
-    const totalIncome = fin.incomes.reduce((s,e)=>s+(e.amount||0),0);
-    const totalSavings = fin.savings.reduce((s,e)=>s+(e.amount||0),0);
-    const totalExp = fin.expenses.reduce((s,e)=>s+(e.amount||0),0);
-
-    // 1. Savings rate: target 20% of income. Score 100 at ≥20%, 0 at 0%
-    if(totalIncome > 0) {
-      const savRate = totalSavings / totalIncome;
-      liveComponents.push(Math.min(100, Math.round(savRate / 0.20 * 100)));
-    }
-
-    // 2. Debt load: ratio against annual income if available, else against account balances
-    const totalDebt = getDebts().reduce((s,d)=>s+(d.balance||0),0);
-    if(totalDebt === 0) {
-      liveComponents.push(100);
-    } else if(totalIncome > 0) {
-      const debtRatio = totalDebt / (totalIncome * 12);
-      liveComponents.push(Math.max(0, Math.round((1 - Math.min(1, debtRatio)) * 100)));
-    } else {
-      // No income logged — score debt vs total account balance (debt > 2× balance = 0)
-      const totalAccBal2 = (typeof getAccounts === 'function' ? getAccounts() : []).reduce((s,a)=>s+(typeof accBalance==='function'?accBalance(a):0),0);
-      const anchor = Math.max(totalAccBal2, 1);
-      liveComponents.push(Math.max(0, Math.round((1 - Math.min(1, totalDebt / (anchor * 2))) * 100)));
-    }
-
-    // 3. Budget adherence: how well expenses stay within budget. Over budget = penalised
-    const budget = getBudget ? getBudget() : {};
-    const totalBudget = Object.values(budget).reduce((s,v)=>s+(parseFloat(v)||0),0);
-    if(totalBudget > 0 && totalExp > 0) {
-      liveComponents.push(Math.max(0, Math.min(100, Math.round((1 - Math.max(0, totalExp - totalBudget) / totalBudget) * 100))));
-    }
-
-    // 4. Account health: total account balance vs 3 months of expenses (emergency fund proxy)
-    const totalAccBal = (typeof getAccounts === 'function' ? getAccounts() : []).reduce((s,a)=>s+(typeof accBalance==='function'?accBalance(a):0),0);
-    const target3mo = totalExp * 3 || 1;
-    liveComponents.push(Math.min(100, Math.round(totalAccBal / target3mo * 100)));
-
-  } catch(e) { /* live data unavailable, fall back to manual */ }
-
-  const liveAvg = liveComponents.length ? Math.round(liveComponents.reduce((a,b)=>a+b,0)/liveComponents.length) : null;
-
-  if(liveAvg !== null && manualAvg !== null) return Math.round(liveAvg * 0.6 + manualAvg * 0.4);
-  if(liveAvg !== null) return liveAvg;
-  return manualAvg;
+  const scores = dom.metrics.map(m=>metricScore(m, domEntry[m.id])).filter(s=>s!==null);
+  if(!scores.length) return null;
+  return Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
 }
 
-function refreshFinancialScore() {
-  const s = domainScore('financial', todayKey());
-  const scoreStr = s !== null ? s + '%' : '--';
-  const el1 = document.getElementById('domain-score-display');
-  const el2 = document.getElementById('domain-progress-score');
-  const bar  = document.getElementById('domain-progress-bar');
-if(el1) el1.textContent = scoreStr;
-  if(el2) el2.textContent = s !== null ? scoreStr : 'No Data';
-  if(bar)  bar.style.width = (s || 0) + '%';
-}
 
 function overallScore(dateKey) {
   const scores = DOMAINS.map(d=>domainScore(d.id, dateKey)).filter(s=>s!==null);
@@ -1648,14 +1586,8 @@ function rerenderFinance(){
   if(!el)return;
   el.outerHTML=buildFinanceHTML();
   setTimeout(()=>renderExpenseChart(),60);
-  // Re-render budget section too
   const bel=document.getElementById('budget-section');
   if(bel) bel.outerHTML=buildBudgetHTML();
-  // Refresh domain score after DOM settles
-  setTimeout(()=>{
-    refreshFinancialScore();
-    if(typeof updateSidebar==='function') updateSidebar();
-  }, 50);
 }
 
 function addFinEntry(month,section,obj){
@@ -2091,8 +2023,6 @@ function utilColor(pct){ return pct>=80?'#f87171':pct>=50?'#fbbf24':'#4ade80'; }
 function rerenderCards(){
   const el=document.getElementById('credit-cards-section');
   if(el) el.outerHTML=buildCreditCardsHTML();
-  refreshFinancialScore();
-  if(typeof updateSidebar==='function') updateSidebar();
 }
 
 function saveUsdRate(){
@@ -2348,8 +2278,6 @@ function accBalance(acc){
 function rerenderAccounts(){
   const el=document.getElementById('accounts-section');
   if(el) el.outerHTML=buildAccountsHTML();
-  refreshFinancialScore();
-  if(typeof updateSidebar==='function') updateSidebar();
 }
 
 function submitAccDeposit(accId){
@@ -2461,11 +2389,7 @@ function saveDebts(debts){
   supabasePush('tc_debts', debts);
 }
 function rerenderDebts(){
-  if(typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
-    navigate('domain','financial');
-  } else {
-    rerenderFinance();
-  }
+  rerenderFinance();
 }
 function addDebt(){
   const creditor=(document.getElementById('debt-creditor')?.value||'').trim();
