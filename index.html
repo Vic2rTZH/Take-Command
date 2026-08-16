@@ -1637,6 +1637,11 @@ function rerenderFinance(){
   // Re-render budget section too
   const bel=document.getElementById('budget-section');
   if(bel) bel.outerHTML=buildBudgetHTML();
+  // Refresh domain score since income/expenses affect the blended financial score
+  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
+    renderDomain('financial');
+  }
+  if(typeof updateSidebar==='function') updateSidebar();
 }
 
 function addFinEntry(month,section,obj){
