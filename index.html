@@ -1104,6 +1104,7 @@ function refreshFinancialScore() {
   const el1 = document.getElementById('domain-score-display');
   const el2 = document.getElementById('domain-progress-score');
   const bar  = document.getElementById('domain-progress-bar');
+  showToast('Score: '+scoreStr+' | el1:'+(el1?'✓':'✗')+' el2:'+(el2?'✓':'✗')+' bar:'+(bar?'✓':'✗'));
   if(el1) el1.textContent = scoreStr;
   if(el2) el2.textContent = s !== null ? scoreStr : 'No Data';
   if(bar)  bar.style.width = (s || 0) + '%';
