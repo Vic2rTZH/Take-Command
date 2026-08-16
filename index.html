@@ -2460,11 +2460,7 @@ function saveDebts(debts){
   supabasePush('tc_debts', debts);
 }
 function rerenderDebts(){
-  const el=document.getElementById('debt-section');
-  if(el) el.outerHTML=buildDebtHTML();
-  // Refresh the full domain view so the blended score updates
-  refreshFinancialScore();
-  if(typeof updateSidebar==='function') updateSidebar();
+  rerenderFinance();
 }
 function addDebt(){
   const creditor=(document.getElementById('debt-creditor')?.value||'').trim();
