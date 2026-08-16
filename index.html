@@ -1063,15 +1063,18 @@ function domainScore(domainId, dateKey) {
       liveComponents.push(Math.min(100, Math.round(savRate / 0.20 * 100)));
     }
 
-    // 2. Debt load: total debts vs monthly income. 0 debt = 100, debt ≥ 12× income = 0
+    // 2. Debt load: ratio against annual income if available, else against account balances
     const totalDebt = getDebts().reduce((s,d)=>s+(d.balance||0),0);
-    if(totalIncome > 0) {
+    if(totalDebt === 0) {
+      liveComponents.push(100);
+    } else if(totalIncome > 0) {
       const debtRatio = totalDebt / (totalIncome * 12);
       liveComponents.push(Math.max(0, Math.round((1 - Math.min(1, debtRatio)) * 100)));
-    } else if(totalDebt === 0) {
-      liveComponents.push(100);
     } else {
-      liveComponents.push(0);
+      // No income logged — score debt vs total account balance (debt > 2× balance = 0)
+      const totalAccBal2 = (typeof getAccounts === 'function' ? getAccounts() : []).reduce((s,a)=>s+(typeof accBalance==='function'?accBalance(a):0),0);
+      const anchor = Math.max(totalAccBal2, 1);
+      liveComponents.push(Math.max(0, Math.round((1 - Math.min(1, totalDebt / (anchor * 2))) * 100)));
     }
 
     // 3. Budget adherence: how well expenses stay within budget. Over budget = penalised
