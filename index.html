@@ -2487,7 +2487,11 @@ function buildDebtHTML(){
     </div>
 
     <div class="card mb16" style="border:1px dashed var(--border2)">
-      <div class="card-title" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${iconSvg('plus-circle',14,'#f5c842')} Add Debt</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="const b=document.getElementById('add-debt-body');const open=b.style.display!=='none';b.style.display=open?'none':'block';document.getElementById('add-debt-arrow').style.transform=open?'rotate(0deg)':'rotate(180deg)';localStorage.setItem('debt_addform_open',open?'0':'1')">
+        <div class="card-title" style="margin:0;display:flex;align-items:center;gap:6px">${iconSvg('plus-circle',14,'#f5c842')} Add Debt</div>
+        <span id="add-debt-arrow" style="color:var(--text3);transition:transform .2s;display:inline-block;transform:rotate(0deg)">${iconSvg('chevron-down',16,'currentColor')}</span>
+      </div>
+      <div id="add-debt-body" style="display:none;margin-top:14px">
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
         <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CREDITOR / LENDER</label>
           <input id="debt-creditor" type="text" placeholder="e.g. Zanaco Bank" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
@@ -2503,6 +2507,7 @@ function buildDebtHTML(){
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <input id="debt-notes" type="text" placeholder="Notes (optional)" style="flex:2;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;outline:none">
         <button onclick="addDebt()" style="background:var(--gold);color:#000;border:none;border-radius:6px;padding:9px 24px;font-family:var(--font-military);font-size:14px;letter-spacing:1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">${iconSvg('plus',14,'#000')} ADD DEBT</button>
+      </div>
       </div>
     </div>
   </div>`;
