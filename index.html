@@ -2332,6 +2332,10 @@ function accBalance(acc){
 function rerenderAccounts(){
   const el=document.getElementById('accounts-section');
   if(el) el.outerHTML=buildAccountsHTML();
+  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
+    renderDomain('financial');
+  }
+  if(typeof updateSidebar==='function') updateSidebar();
 }
 
 function submitAccDeposit(accId){
