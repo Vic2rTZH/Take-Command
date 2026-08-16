@@ -2077,6 +2077,10 @@ function utilColor(pct){ return pct>=80?'#f87171':pct>=50?'#fbbf24':'#4ade80'; }
 function rerenderCards(){
   const el=document.getElementById('credit-cards-section');
   if(el) el.outerHTML=buildCreditCardsHTML();
+  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
+    renderDomain('financial');
+  }
+  if(typeof updateSidebar==='function') updateSidebar();
 }
 
 function saveUsdRate(){
