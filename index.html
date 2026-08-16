@@ -1095,6 +1095,18 @@ function domainScore(domainId, dateKey) {
   return manualAvg;
 }
 
+function refreshFinancialScore() {
+  if(typeof currentDomainId === 'undefined' || currentDomainId !== 'financial') return;
+  const s = domainScore('financial', todayKey());
+  const scoreStr = s !== null ? s + '%' : '--';
+  const el1 = document.getElementById('domain-score-display');
+  const el2 = document.getElementById('domain-progress-score');
+  const bar  = document.getElementById('domain-progress-bar');
+  if(el1) el1.textContent = scoreStr;
+  if(el2) el2.textContent = s !== null ? scoreStr : 'No Data';
+  if(bar)  bar.style.width = (s || 0) + '%';
+}
+
 function overallScore(dateKey) {
   const scores = DOMAINS.map(d=>domainScore(d.id, dateKey)).filter(s=>s!==null);
   if(!scores.length) return null;
@@ -1638,9 +1650,7 @@ function rerenderFinance(){
   const bel=document.getElementById('budget-section');
   if(bel) bel.outerHTML=buildBudgetHTML();
   // Refresh domain score since income/expenses affect the blended financial score
-  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
-    renderDomain('financial');
-  }
+  refreshFinancialScore();
   if(typeof updateSidebar==='function') updateSidebar();
 }
 
@@ -2077,9 +2087,7 @@ function utilColor(pct){ return pct>=80?'#f87171':pct>=50?'#fbbf24':'#4ade80'; }
 function rerenderCards(){
   const el=document.getElementById('credit-cards-section');
   if(el) el.outerHTML=buildCreditCardsHTML();
-  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
-    renderDomain('financial');
-  }
+  refreshFinancialScore();
   if(typeof updateSidebar==='function') updateSidebar();
 }
 
@@ -2336,9 +2344,7 @@ function accBalance(acc){
 function rerenderAccounts(){
   const el=document.getElementById('accounts-section');
   if(el) el.outerHTML=buildAccountsHTML();
-  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
-    renderDomain('financial');
-  }
+  refreshFinancialScore();
   if(typeof updateSidebar==='function') updateSidebar();
 }
 
@@ -2454,9 +2460,7 @@ function rerenderDebts(){
   const el=document.getElementById('debt-section');
   if(el) el.outerHTML=buildDebtHTML();
   // Refresh the full domain view so the blended score updates
-  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
-    renderDomain('financial');
-  }
+  refreshFinancialScore();
   if(typeof updateSidebar==='function') updateSidebar();
 }
 function addDebt(){
@@ -3284,8 +3288,8 @@ function renderDomain(domainId) {
         <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">${dom.subtitle}</div>
       </div>
       <div style="margin-left:auto;text-align:right">
-        <div style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:900;color:${dom.color};line-height:1">${score!==null?score+'%':'--'}</div>
-        <div>${trendHTML(t)} <span class="badge ${st.cls}">${st.label}</span></div>
+        <div id="domain-score-display" style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:900;color:${dom.color};line-height:1">${score!==null?score+'%':'--'}</div>
+        <div id="domain-badge-display">${trendHTML(t)} <span class="badge ${st.cls}">${st.label}</span></div>
       </div>
     </div>
 
@@ -3320,9 +3324,9 @@ function renderDomain(domainId) {
           </div>
           <div class="card">
             <div class="card-title">Domain Progress Bar</div>
-            <div style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:900;color:${dom.color};margin-bottom:10px">${score!==null?score+'%':'No Data'}</div>
+            <div id="domain-progress-score" style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:900;color:${dom.color};margin-bottom:10px">${score!==null?score+'%':'No Data'}</div>
             <div style="height:10px;background:var(--bg4);border-radius:5px;overflow:hidden">
-              <div style="height:100%;width:${score||0}%;background:${dom.color};border-radius:5px;transition:width .5s"></div>
+              <div id="domain-progress-bar" style="height:100%;width:${score||0}%;background:${dom.color};border-radius:5px;transition:width .5s"></div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px">
               <span>CRITICAL</span><span>DEGRADED</span><span>ADEQUATE</span><span>GOOD</span><span>SUPERIOR</span>
