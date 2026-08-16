@@ -1989,6 +1989,7 @@ function buildFinanceHTML(){
     ${mkFinSection('investments',`${iconSvg('bar-chart-2',14,'#a78bfa')} Investments`, fmtZMW(totalInvest),  '#a78bfa', '#553c9a', data.investments)}
     ${mkFinSection('expenses',   `${iconSvg('arrow-up-circle',14,'#f87171')} Expenses`,fmtZMW(totalExp),     '#f87171', '#c44040', data.expenses)}
     ${buildCreditCardsHTML()}
+    ${buildDebtHTML()}
     ${buildAccountsHTML()}
   </div>`;
 }
@@ -2373,6 +2374,136 @@ function submitAddAccount(){
 function deleteAccount(id){
   if(!confirm('Delete this account and all its transactions?'))return;
   saveAccounts(getAccounts().filter(a=>a.id!==id)); rerenderAccounts();
+}
+
+// ================================================================
+//  DEBT TRACKER
+// ================================================================
+const DEBT_KEY = 'tc_debts';
+
+function getDebts(){
+  try{ return JSON.parse(localStorage.getItem(DEBT_KEY)||'[]'); }catch{ return []; }
+}
+function saveDebts(debts){
+  localStorage.setItem(DEBT_KEY, JSON.stringify(debts));
+  supabasePush('tc_debts', debts);
+}
+function rerenderDebts(){
+  const el=document.getElementById('debt-section');
+  if(el) el.outerHTML=buildDebtHTML();
+}
+function addDebt(){
+  const creditor=(document.getElementById('debt-creditor')?.value||'').trim();
+  const balance=parseFloat(document.getElementById('debt-balance')?.value);
+  const minPay=parseFloat(document.getElementById('debt-minpay')?.value||'0');
+  const rate=parseFloat(document.getElementById('debt-rate')?.value||'0');
+  const dueDay=parseInt(document.getElementById('debt-due')?.value||'0');
+  const notes=(document.getElementById('debt-notes')?.value||'').trim();
+  if(!creditor||isNaN(balance)||balance<=0){showToast('Enter creditor name and balance');return;}
+  const debts=getDebts();
+  debts.push({id:'dbt_'+Date.now(),creditor,balance,minPay,rate,dueDay,notes,createdAt:todayKey()});
+  saveDebts(debts);
+  rerenderDebts();
+  showToast('Debt added');
+}
+function updateDebtBalance(id){
+  const newBal=parseFloat(document.getElementById('debt-upd-'+id)?.value);
+  if(isNaN(newBal)||newBal<0){showToast('Enter a valid balance');return;}
+  const debts=getDebts().map(d=>d.id===id?{...d,balance:newBal,updatedAt:todayKey()}:d);
+  saveDebts(debts);
+  rerenderDebts();
+  showToast('Balance updated');
+}
+function deleteDebt(id){
+  if(!confirm('Remove this debt?'))return;
+  saveDebts(getDebts().filter(d=>d.id!==id));
+  rerenderDebts();
+}
+function buildDebtHTML(){
+  const debts=getDebts();
+  const totalOwed=debts.reduce((s,d)=>s+(d.balance||0),0);
+  const totalMinPay=debts.reduce((s,d)=>s+(d.minPay||0),0);
+
+  const debtCards=debts.length
+    ? debts.map(d=>{
+        const urgency=d.dueDay>0&&d.dueDay<=7?'#f87171':d.dueDay>0&&d.dueDay<=14?'#fbbf24':'#8fa0b8';
+        return `<div style="background:var(--bg4);border:1px solid var(--border);border-left:3px solid #f87171;border-radius:8px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <div style="flex:1;min-width:160px">
+            <div style="font-family:var(--font-military);font-size:15px;letter-spacing:1px">${escHtml(d.creditor)}</div>
+            ${d.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${escHtml(d.notes)}</div>`:''}
+          </div>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+            <div style="text-align:center">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Balance Owed</div>
+              <div style="font-family:var(--font-military);font-size:16px;color:#f87171">${fmtZMW(d.balance)}</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Min Payment</div>
+              <div style="font-family:var(--font-military);font-size:16px;color:#fbbf24">${d.minPay>0?fmtZMW(d.minPay):'—'}</div>
+            </div>
+            ${d.rate>0?`<div style="text-align:center">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Interest</div>
+              <div style="font-family:var(--font-military);font-size:16px;color:#a78bfa">${d.rate}%</div>
+            </div>`:''}
+            ${d.dueDay>0?`<div style="text-align:center">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Due Day</div>
+              <div style="font-family:var(--font-military);font-size:16px;color:${urgency}">${d.dueDay}${d.dueDay===1?'st':d.dueDay===2?'nd':d.dueDay===3?'rd':'th'}</div>
+            </div>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px">
+              <span style="font-size:11px;color:var(--text3);font-weight:700;white-space:nowrap">ZMW</span>
+              <input type="number" id="debt-upd-${d.id}" min="0" step="0.01" placeholder="${Number(d.balance).toFixed(2)}" style="background:none;border:none;color:var(--text);font-size:13px;font-weight:700;width:90px;outline:none">
+            </div>
+            <button onclick="updateDebtBalance('${d.id}')" style="background:#276749;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-family:var(--font-military);letter-spacing:1px;cursor:pointer;white-space:nowrap">UPDATE</button>
+            <button onclick="deleteDebt('${d.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--text3)" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">✕</button>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--text3);font-size:13px;padding:10px 0">No debts tracked. Add one below.</div>`;
+
+  return `<div id="debt-section">
+    <div class="divider" style="margin:24px 0 20px"><div class="divider-line"></div><div class="divider-text" style="display:flex;align-items:center;gap:6px">${iconSvg('alert-triangle',13,'#f87171')} Debt Tracker</div><div class="divider-line"></div></div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Owed</div>
+        <div style="font-family:var(--font-military);font-size:15px;color:#f87171">${fmtZMW(totalOwed)}</div>
+      </div>
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Min Payments/Mo</div>
+        <div style="font-family:var(--font-military);font-size:15px;color:#fbbf24">${fmtZMW(totalMinPay)}</div>
+      </div>
+      <div style="background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Debts</div>
+        <div style="font-family:var(--font-military);font-size:15px;color:#8fa0b8">${debts.length}</div>
+      </div>
+    </div>
+
+    <div class="card mb16">
+      <div style="display:flex;flex-direction:column;gap:10px">${debtCards}</div>
+    </div>
+
+    <div class="card mb16" style="border:1px dashed var(--border2)">
+      <div class="card-title" style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${iconSvg('plus-circle',14,'#f5c842')} Add Debt</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">CREDITOR / LENDER</label>
+          <input id="debt-creditor" type="text" placeholder="e.g. Zanaco Bank" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">BALANCE OWED (ZMW)</label>
+          <input id="debt-balance" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">MIN PAYMENT (ZMW)</label>
+          <input id="debt-minpay" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">INTEREST RATE (%)</label>
+          <input id="debt-rate" type="number" min="0" step="0.1" placeholder="0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">DUE DAY OF MONTH</label>
+          <input id="debt-due" type="number" min="1" max="31" placeholder="e.g. 15" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input id="debt-notes" type="text" placeholder="Notes (optional)" style="flex:2;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;outline:none">
+        <button onclick="addDebt()" style="background:var(--gold);color:#000;border:none;border-radius:6px;padding:9px 24px;font-family:var(--font-military);font-size:14px;letter-spacing:1px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">${iconSvg('plus',14,'#000')} ADD DEBT</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function buildAccountsHTML(){
