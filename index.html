@@ -1099,7 +1099,6 @@ function domainScore(domainId, dateKey) {
 }
 
 function refreshFinancialScore() {
-  if(typeof currentDomainId === 'undefined' || currentDomainId !== 'financial') return;
   const s = domainScore('financial', todayKey());
   const scoreStr = s !== null ? s + '%' : '--';
   const el1 = document.getElementById('domain-score-display');
@@ -1652,9 +1651,11 @@ function rerenderFinance(){
   // Re-render budget section too
   const bel=document.getElementById('budget-section');
   if(bel) bel.outerHTML=buildBudgetHTML();
-  // Refresh domain score since income/expenses affect the blended financial score
-  refreshFinancialScore();
-  if(typeof updateSidebar==='function') updateSidebar();
+  // Refresh domain score after DOM settles
+  setTimeout(()=>{
+    refreshFinancialScore();
+    if(typeof updateSidebar==='function') updateSidebar();
+  }, 50);
 }
 
 function addFinEntry(month,section,obj){
