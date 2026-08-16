@@ -2397,11 +2397,11 @@ function addDebt(){
   const balance=parseFloat(document.getElementById('debt-balance')?.value);
   const minPay=parseFloat(document.getElementById('debt-minpay')?.value||'0');
   const rate=parseFloat(document.getElementById('debt-rate')?.value||'0');
-  const dueDay=parseInt(document.getElementById('debt-due')?.value||'0');
+  const dueDate=document.getElementById('debt-due')?.value||'';
   const notes=(document.getElementById('debt-notes')?.value||'').trim();
   if(!creditor||isNaN(balance)||balance<=0){showToast('Enter creditor name and balance');return;}
   const debts=getDebts();
-  debts.push({id:'dbt_'+Date.now(),creditor,balance,minPay,rate,dueDay,notes,createdAt:todayKey()});
+  debts.push({id:'dbt_'+Date.now(),creditor,balance,minPay,rate,dueDate,notes,createdAt:todayKey()});
   saveDebts(debts);
   rerenderDebts();
   showToast('Debt added');
@@ -2426,7 +2426,8 @@ function buildDebtHTML(){
 
   const debtCards=debts.length
     ? debts.map(d=>{
-        const urgency=d.dueDay>0&&d.dueDay<=7?'#f87171':d.dueDay>0&&d.dueDay<=14?'#fbbf24':'#8fa0b8';
+        const daysLeft=d.dueDate?Math.ceil((new Date(d.dueDate)-new Date())/86400000):null;
+        const urgency=daysLeft===null?'#8fa0b8':daysLeft<=7?'#f87171':daysLeft<=14?'#fbbf24':'#4ade80';
         return `<div style="background:var(--bg4);border:1px solid var(--border);border-left:3px solid #f87171;border-radius:8px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
           <div style="flex:1;min-width:160px">
             <div style="font-family:var(--font-military);font-size:15px;letter-spacing:1px">${escHtml(d.creditor)}</div>
@@ -2445,9 +2446,10 @@ function buildDebtHTML(){
               <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Interest</div>
               <div style="font-family:var(--font-military);font-size:16px;color:#a78bfa">${d.rate}%</div>
             </div>`:''}
-            ${d.dueDay>0?`<div style="text-align:center">
-              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Due Day</div>
-              <div style="font-family:var(--font-military);font-size:16px;color:${urgency}">${d.dueDay}${d.dueDay===1?'st':d.dueDay===2?'nd':d.dueDay===3?'rd':'th'}</div>
+            ${d.dueDate?`<div style="text-align:center">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Due Date</div>
+              <div style="font-family:var(--font-military);font-size:14px;color:${urgency}">${new Date(d.dueDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+              ${daysLeft!==null?`<div style="font-size:10px;color:${urgency};margin-top:2px">${daysLeft>0?daysLeft+' days left':daysLeft===0?'DUE TODAY':'OVERDUE'}</div>`:''}
             </div>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -2495,8 +2497,8 @@ function buildDebtHTML(){
           <input id="debt-minpay" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
         <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">INTEREST RATE (%)</label>
           <input id="debt-rate" type="number" min="0" step="0.1" placeholder="0" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
-        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">DUE DAY OF MONTH</label>
-          <input id="debt-due" type="number" min="1" max="31" placeholder="e.g. 15" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
+        <div><label style="font-family:var(--font-military);font-size:11px;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:4px">DUE DATE</label>
+          <input id="debt-due" type="date" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;box-sizing:border-box;outline:none"></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <input id="debt-notes" type="text" placeholder="Notes (optional)" style="flex:2;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:13px;outline:none">
