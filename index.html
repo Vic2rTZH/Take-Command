@@ -2440,6 +2440,11 @@ function saveDebts(debts){
 function rerenderDebts(){
   const el=document.getElementById('debt-section');
   if(el) el.outerHTML=buildDebtHTML();
+  // Refresh the full domain view so the blended score updates
+  if(typeof renderDomain==='function' && typeof currentDomainId!=='undefined' && currentDomainId==='financial'){
+    renderDomain('financial');
+  }
+  if(typeof updateSidebar==='function') updateSidebar();
 }
 function addDebt(){
   const creditor=(document.getElementById('debt-creditor')?.value||'').trim();
