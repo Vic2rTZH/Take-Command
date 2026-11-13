@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import NewsletterForm from "./NewsletterForm";
 
 export function SiteHeader({ current, cta }: { current?: "home" | "resources"; cta?: { href: string; label: string } }) {
   return (
@@ -28,7 +29,15 @@ export function SiteHeader({ current, cta }: { current?: "home" | "resources"; c
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="wrap">
+      <div className="wrap nl">
+        <div className="nl-text">
+          <p className="eyebrow">Newsletter</p>
+          <h2 className="serif">The Take Command Brief</h2>
+          <p>One page with a few action points, once or twice a month. Unsubscribe any time.</p>
+        </div>
+        <NewsletterForm />
+      </div>
+      <div className="wrap foot-base">
         <span className="mark">
           <img src="/brand/vs-logo.png" alt="" width={36} height={36} />© {new Date().getFullYear()} Victor Simz. All rights reserved.
         </span>

@@ -76,7 +76,7 @@ export default function SignupForm({ slug, title, meta }: Props) {
       </div>
       <label className="consent">
         <input type="checkbox" name="newsletter" />
-        <span>Also send me the Take Command newsletter when it launches. Unsubscribe any time.</span>
+        <span>Also send me The Take Command Brief, a short newsletter once or twice a month. Unsubscribe any time.</span>
       </label>
       {error ? (
         <p className="note err" role="alert">

@@ -31,7 +31,7 @@ export async function sendResourceEmail(d: Delivery): Promise<{ ok: boolean; err
 <p style="margin:0 0 14px;font-size:16px;line-height:1.6">If it raises a question, reply to this email. I read every reply.</p>
 <p style="margin:0;font-size:16px;line-height:1.6">Victor Simz</p>
 </td></tr>
-<tr><td style="padding:18px 28px;border-top:1px solid #e1e5eb;font-size:12px;line-height:1.5;color:#4a5362">${escapeHtml(TAGLINE)}<br>You received this because you asked for this resource at <a href="${SITE_URL}" style="color:#4a5362">${SITE_URL.replace(/^https?:\/\//, "")}</a>.${d.newsletter ? " You also asked for the Take Command newsletter. It has not launched yet; you will get the first issue when it does, and every issue has an unsubscribe link." : ""}</td></tr>
+<tr><td style="padding:18px 28px;border-top:1px solid #e1e5eb;font-size:12px;line-height:1.5;color:#4a5362">${escapeHtml(TAGLINE)}<br>You received this because you asked for this resource at <a href="${SITE_URL}" style="color:#4a5362">${SITE_URL.replace(/^https?:\/\//, "")}</a>.${d.newsletter ? " You also asked for The Take Command Brief; every issue has an unsubscribe link." : ""}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = `${first ? `Hello ${first},` : "Hello,"}\n\nHere is your copy of ${d.title}:\n${d.downloadUrl}\n\nIf it raises a question, reply to this email.\n\nVictor Simz\n${TAGLINE}`;
 
