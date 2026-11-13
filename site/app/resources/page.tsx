@@ -23,7 +23,7 @@ export default async function ResourcesPage() {
         <section className="wrap hub-head stack">
           <p className="eyebrow">Free resources</p>
           <h1 className="serif">
-            Tools to help you <i>take command.</i>
+            Tools to help you <i>Take Command.</i>
           </h1>
           <p className="lede">Practical workbooks and worksheets you can print, fill in and act on. Each one is free. Tell me where to send it.</p>
         </section>

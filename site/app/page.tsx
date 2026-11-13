@@ -49,7 +49,7 @@ export default async function Home() {
           <h2 className="serif">
             Think clearer. Lead better.
             <br />
-            <i>Take command.</i>
+            <i>Take Command.</i>
           </h2>
           {featured ? (
             <a className="btn" href="#get">

@@ -2,7 +2,7 @@
 const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000")).replace(/\/$/, "");
 export const SITE_NAME = "Victor Simz | Take Command";
-export const TAGLINE = "Think clearer. Lead better. Take command.";
+export const TAGLINE = "Think clearer. Lead better. Take Command.";
 export const CONTACT_EMAIL = "vsimukonda@gmail.com";
 
 export const SERIES = [
