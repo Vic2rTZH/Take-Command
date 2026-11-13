@@ -13,6 +13,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="login">
       <form className="box form" action={signIn}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="login-logo" src="/brand/vs-logo.png" alt="Victor Simz" width={72} height={72} />
         <h1>Take Command admin</h1>
         {!authConfigured || error === "setup" ? (
           <p className="notice">
