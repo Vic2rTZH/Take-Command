@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${SITE_NAME}: plan your life the way a general plans a campaign`, template: `%s | Take Command` },
   description: "Take Command brings the principles of military strategy and leadership to the life you're building. Start with the free Commander's Life Audit.",
-  openGraph: { siteName: SITE_NAME, type: "website" },
+  openGraph: { siteName: SITE_NAME, type: "website", url: "/" },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
