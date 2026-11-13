@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { currentAdmin } from "@/lib/auth";
 import { db, dbConfigured } from "@/lib/supabase";
 
 const BOT_RE = /bot|crawl|spider|slurp|preview|monitor|headless|lighthouse|facebookexternalhit|whatsapp/i;
@@ -10,6 +12,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const path = String(body.path ?? "").slice(0, 200);
     if (!path.startsWith("/") || path.startsWith("/admin") || path.startsWith("/api")) return new NextResponse(null, { status: 204 });
+
+    // Skip visits from a browser that is signed in to the admin panel, so the owner's own visits are not counted.
+    const store = await cookies();
+    const hasSession = store.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+    if (hasSession && (await currentAdmin())) return new NextResponse(null, { status: 204 });
 
     const ua = request.headers.get("user-agent") || "";
     if (!ua || BOT_RE.test(ua)) return new NextResponse(null, { status: 204 });
