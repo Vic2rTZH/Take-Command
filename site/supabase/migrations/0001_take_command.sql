@@ -160,8 +160,10 @@ as $$
   );
 $$;
 
-revoke all on function public.tc_record_download(uuid) from public;
-revoke all on function public.tc_overview(int, text) from public;
+revoke all on function public.tc_record_download(uuid) from public, anon, authenticated;
+revoke all on function public.tc_overview(int, text) from public, anon, authenticated;
+grant execute on function public.tc_record_download(uuid) to service_role;
+grant execute on function public.tc_overview(int, text) to service_role;
 
 -- Starting content. Edit or add more in the admin panel.
 insert into public.tc_resources (slug, title, kind, quote, description, highlights, pages, minutes, cover_url, status, sort)

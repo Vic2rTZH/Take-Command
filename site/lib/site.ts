@@ -1,4 +1,6 @@
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+// On Vercel, falls back to the project's own address until NEXT_PUBLIC_SITE_URL is set.
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000")).replace(/\/$/, "");
 export const SITE_NAME = "Victor Simz | Take Command";
 export const TAGLINE = "Think clearer. Lead better. Take command.";
 export const CONTACT_EMAIL = "vsimukonda@gmail.com";
