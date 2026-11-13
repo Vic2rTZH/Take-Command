@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { AboutSection, OfferSection } from "@/components/Sections";
@@ -27,6 +28,9 @@ export default async function ResourcePage({ params }: Props) {
       <SiteHeader cta={{ href: "#get", label: "Get it free" }} />
       <main>
         <section className="wrap res-hero stack">
+          <Link className="backlink" href="/resources">
+            <span aria-hidden="true">←</span> All free resources
+          </Link>
           <p className="eyebrow">Free {resource.kind.toLowerCase()}</p>
           <h1 className="serif">{resource.title}</h1>
           <p className="lede">{resourceMeta(resource)}. Free, sent to your inbox.</p>

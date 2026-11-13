@@ -38,10 +38,10 @@ a:hover { color: var(--orange-hi); }
 .btn.ghost:hover { border-color: var(--orange); color: var(--orange); background: transparent; }
 
 /* header and footer */
-.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
-.brand { display: flex; align-items: center; gap: 18px; text-decoration: none; }
-.brand .logo { width: 60px; height: 60px !important; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); display: block; }
-.brand .sig { height: 84px !important; width: auto; display: block; }
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-block: 30px 22px; }
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.brand .logo { width: 54px; height: 54px !important; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); display: block; }
+.brand .sig { height: 68px !important; width: auto; display: block; }
 .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
 .navlink { color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
 .navlink:hover, .navlink[aria-current="page"] { color: var(--orange); }
@@ -50,7 +50,7 @@ a:hover { color: var(--orange-hi); }
 .site-footer .mark { display: flex; align-items: center; gap: 12px; }
 .site-footer .mark img { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.28); }
 .page { min-height: 100vh; display: flex; flex-direction: column; }
-@media (max-width: 520px) { .brand .sig { height: 60px !important; } .brand .logo { width: 48px; height: 48px !important; } }
+@media (max-width: 520px) { .brand .sig { height: 54px !important; } .brand .logo { width: 44px; height: 44px !important; } .site-nav { gap: 16px; } }
 
 /* hero */
 .hero { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(32px, 5vw, 64px); padding-top: clamp(32px, 6vw, 72px); padding-bottom: clamp(48px, 7vw, 96px); }
@@ -130,3 +130,6 @@ a:hover { color: var(--orange-hi); }
 
 .res-hero { gap: 16px; padding-top: clamp(28px, 4vw, 56px); padding-bottom: clamp(32px, 5vw, 56px); }
 .res-hero h1 { font-size: clamp(36px, 4.8vw, 60px); line-height: 1.05; }
+
+.backlink { color: var(--ink-2); font-size: 15px; font-weight: 600; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; }
+.backlink:hover { color: var(--orange); }

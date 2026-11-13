@@ -9,6 +9,9 @@ export function SiteHeader({ current, cta }: { current?: "home" | "resources"; c
         <img className="sig" src="/brand/signature.png" alt="Victor Simz" width={170} height={84} />
       </Link>
       <nav className="site-nav" aria-label="Main">
+        <Link className="navlink" href="/" aria-current={current === "home" ? "page" : undefined}>
+          Home
+        </Link>
         <Link className="navlink" href="/resources" aria-current={current === "resources" ? "page" : undefined}>
           Free resources
         </Link>
