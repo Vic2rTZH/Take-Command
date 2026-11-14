@@ -5,6 +5,7 @@ import { aiConfigured } from "@/lib/ai";
 import { BRIEF_COLUMNS, briefProblems, renderBrief, type Brief } from "@/lib/brief";
 import { SITE_URL } from "@/lib/site";
 import { aiDraft, broadcastIssue, deleteIssue, saveIssue, sendTest } from "../actions";
+import PendingButton, { PendingNotice } from "@/components/admin/PendingButton";
 
 export const metadata = { title: "Newsletter issue" };
 // Sending one email at a time to stay within the email provider's rate limit can take a while.
@@ -62,6 +63,7 @@ export default async function IssuePage({ params, searchParams }: Props) {
       {draft ? (
         <form className="form" style={{ maxWidth: "none" }}>
           <input type="hidden" name="id" value={b.id} />
+          <PendingNotice text="Working on it. Please wait and keep this page open." />
           <div className="grid2" style={{ marginTop: 0, alignItems: "start" }}>
             <div className="stack" style={{ gap: 14 }}>
               <section className="panel stack" style={{ gap: 12 }}>
@@ -76,9 +78,9 @@ export default async function IssuePage({ params, searchParams }: Props) {
                       If the issue already has text, the AI revises it. It never sends anything.
                     </p>
                     <div className="actions">
-                      <button className="adm-btn" type="submit" formAction={aiDraft}>
+                      <PendingButton formAction={aiDraft} pendingText="Writing… about 20 seconds">
                         Write with AI
-                      </button>
+                      </PendingButton>
                     </div>
                   </>
                 ) : (
@@ -115,12 +117,12 @@ export default async function IssuePage({ params, searchParams }: Props) {
                   <textarea id="action" name="action" maxLength={600} defaultValue={b.action} style={{ minHeight: 80 }} />
                 </div>
                 <div className="actions">
-                  <button className="adm-btn" type="submit" formAction={saveIssue}>
+                  <PendingButton formAction={saveIssue} pendingText="Saving…">
                     Save
-                  </button>
-                  <button className="adm-btn quiet" type="submit" formAction={sendTest}>
+                  </PendingButton>
+                  <PendingButton className="adm-btn quiet" formAction={sendTest} pendingText="Sending test…">
                     Save and send me a test
-                  </button>
+                  </PendingButton>
                 </div>
               </section>
 
@@ -139,12 +141,12 @@ export default async function IssuePage({ params, searchParams }: Props) {
                   </span>
                 </label>
                 <div className="actions">
-                  <button className="adm-btn" type="submit" formAction={broadcastIssue} disabled={problems.length > 0 || subs === 0}>
+                  <PendingButton formAction={broadcastIssue} disabled={problems.length > 0 || subs === 0} pendingText="Sending… keep this page open">
                     Send to {subs.toLocaleString("en-GB")} {subs === 1 ? "subscriber" : "subscribers"}
-                  </button>
-                  <button className="adm-btn quiet" type="submit" formAction={deleteIssue} formNoValidate>
+                  </PendingButton>
+                  <PendingButton className="adm-btn quiet" formAction={deleteIssue} formNoValidate pendingText="Deleting…">
                     Delete draft
-                  </button>
+                  </PendingButton>
                 </div>
                 <p className="hint" style={{ margin: 0 }}>
                   The send button uses the last saved version. Save first if you have made changes.
