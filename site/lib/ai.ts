@@ -34,7 +34,8 @@ const TOOL = {
 };
 
 export async function draftBrief(notes: string, current?: BriefDraft): Promise<{ ok: true; draft: BriefDraft } | { ok: false; message: string }> {
-  const key = process.env.ANTHROPIC_API_KEY;
+  // Trim: a key pasted with a trailing space or line break makes the request fail before it is sent.
+  const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) return { ok: false, message: "AI drafting is not set up. Add ANTHROPIC_API_KEY in Vercel." };
 
   const hasCurrent = current && [current.subject, current.bluf, current.action, ...current.ideas, ...current.questions].some((x) => x.trim());
@@ -46,6 +47,7 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      signal: AbortSignal.timeout(55000),
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1500,
@@ -73,7 +75,9 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
         action: String(d.action || ""),
       },
     };
-  } catch {
-    return { ok: false, message: "Could not reach the AI service. Try again." };
+  } catch (e) {
+    const detail = e instanceof Error ? (e.cause instanceof Error ? e.cause.message : e.message) : String(e);
+    console.error("AI request failed", e);
+    return { ok: false, message: `Could not reach the AI service (${detail.slice(0, 160)}). Try again.` };
   }
 }
