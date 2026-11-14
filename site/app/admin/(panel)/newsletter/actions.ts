@@ -7,6 +7,7 @@ import { db } from "@/lib/supabase";
 import { draftBrief, type BriefDraft } from "@/lib/ai";
 import { BRIEF_COLUMNS, briefProblems, oneClickUrl, renderBrief, unsubscribeUrl, type Brief } from "@/lib/brief";
 import { SITE_URL } from "@/lib/site";
+import { logoAttachment } from "@/lib/logo-inline";
 
 function fields(formData: FormData) {
   const get = (k: string) => String(formData.get(k) || "").trim();
@@ -71,7 +72,7 @@ export async function sendTest(formData: FormData) {
   const { html, text } = renderBrief(b, `${SITE_URL}/unsubscribe`);
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) redirect(`/admin/newsletter/${id}?error=${encodeURIComponent("Email is not configured.")}`);
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: from!, to: admin, subject: `[Test] ${b.subject || "The Take Command Brief"}`, html, text });
+  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: from!, to: admin, subject: `[Test] ${b.subject || "The Take Command Brief"}`, html, text, attachments: [logoAttachment] });
   if (error) redirect(`/admin/newsletter/${id}?error=${encodeURIComponent(`Test email failed: ${error.message}`)}`);
   redirect(`/admin/newsletter/${id}?tested=1`);
 }
@@ -102,27 +103,26 @@ export async function broadcastIssue(formData: FormData) {
   const { data: locked } = await supabase.from("tc_newsletters").update({ status: "sending" }).eq("id", id).eq("status", "draft").select("id");
   if (!locked || locked.length === 0) redirect(`/admin/newsletter/${id}`);
 
+  // Sent one at a time: batch sending does not support the embedded logo. About two per second keeps within Resend's rate limit.
   const resend = new Resend(key);
   let sent = 0;
   const failures: string[] = [];
-  for (let i = 0; i < list.length; i += 100) {
-    const chunk = list.slice(i, i + 100).map((s) => {
-      const url = unsubscribeUrl(s.unsub_token);
-      const { html, text } = renderBrief(b, url);
-      return {
-        from: from!,
-        to: s.email,
-        subject: b.subject,
-        html,
-        text,
-        replyTo: process.env.EMAIL_REPLY_TO || undefined,
-        headers: { "List-Unsubscribe": `<${oneClickUrl(s.unsub_token)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-      };
+  for (const sub of list) {
+    const url = unsubscribeUrl(sub.unsub_token);
+    const { html, text } = renderBrief(b, url);
+    const { error } = await resend.emails.send({
+      from: from!,
+      to: sub.email,
+      subject: b.subject,
+      html,
+      text,
+      replyTo: process.env.EMAIL_REPLY_TO || undefined,
+      attachments: [logoAttachment],
+      headers: { "List-Unsubscribe": `<${oneClickUrl(sub.unsub_token)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
-    const { error } = await resend.batch.send(chunk);
     if (error) failures.push(error.message);
-    else sent += chunk.length;
-    if (i + 100 < list.length) await new Promise((r) => setTimeout(r, 600));
+    else sent += 1;
+    await new Promise((r) => setTimeout(r, 550));
   }
 
   if (sent === 0) {

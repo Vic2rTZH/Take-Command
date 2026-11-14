@@ -7,6 +7,8 @@ import { SITE_URL } from "@/lib/site";
 import { aiDraft, broadcastIssue, deleteIssue, saveIssue, sendTest } from "../actions";
 
 export const metadata = { title: "Newsletter issue" };
+// Sending one email at a time to stay within the email provider's rate limit can take a while.
+export const maxDuration = 300;
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -24,7 +26,8 @@ export default async function IssuePage({ params, searchParams }: Props) {
   const { count } = await supabase.from("tc_subscribers").select("id", { count: "exact", head: true }).eq("newsletter", true);
   const subs = count ?? 0;
   const problems = briefProblems({ ...b, ideas, questions: qs });
-  const { html } = renderBrief({ ...b, ideas, questions: qs }, `${SITE_URL}/unsubscribe`);
+  // The preview loads the logo from the site; sent emails carry it embedded.
+  const { html } = renderBrief({ ...b, ideas, questions: qs }, `${SITE_URL}/unsubscribe`, `${SITE_URL}/brand/vs-logo.png`);
 
   return (
     <>

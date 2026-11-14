@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { SITE_NAME, SITE_URL, TAGLINE } from "./site";
+import { emailHeader, logoAttachment } from "./logo-inline";
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM;
@@ -22,7 +23,7 @@ export async function sendResourceEmail(d: Delivery): Promise<{ ok: boolean; err
   const html = `<!doctype html><html><body style="margin:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#0b1320">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
-<tr><td style="background:#0b1320;padding:22px 28px;border-bottom:4px solid #ea9a23"><span style="color:#ea9a23;font-size:12px;font-weight:bold;letter-spacing:3px">TAKE COMMAND</span></td></tr>
+${emailHeader("TAKE COMMAND")}
 <tr><td style="padding:28px">
 <p style="margin:0 0 14px;font-size:16px;line-height:1.6">${greeting}</p>
 <p style="margin:0 0 20px;font-size:16px;line-height:1.6">Here is your copy of <strong>${title}</strong>.</p>
@@ -42,6 +43,7 @@ export async function sendResourceEmail(d: Delivery): Promise<{ ok: boolean; err
     html,
     text,
     replyTo: process.env.EMAIL_REPLY_TO || undefined,
+    attachments: [logoAttachment],
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -55,7 +57,7 @@ export async function sendNewsletterWelcome(to: string): Promise<{ ok: boolean; 
   const html = `<!doctype html><html><body style="margin:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#0b1320">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
-<tr><td style="background:#0b1320;padding:22px 28px;border-bottom:4px solid #ea9a23"><span style="color:#ea9a23;font-size:12px;font-weight:bold;letter-spacing:3px">TAKE COMMAND</span></td></tr>
+${emailHeader("TAKE COMMAND")}
 <tr><td style="padding:28px">
 <p style="margin:0 0 14px;font-size:16px;line-height:1.6">Hello,</p>
 <p style="margin:0 0 14px;font-size:16px;line-height:1.6">You're on the list for <strong>The Take Command Brief</strong>: one page with a few action points, once or twice a month.</p>
@@ -73,6 +75,7 @@ export async function sendNewsletterWelcome(to: string): Promise<{ ok: boolean; 
     html,
     text,
     replyTo: process.env.EMAIL_REPLY_TO || undefined,
+    attachments: [logoAttachment],
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true };

@@ -1,5 +1,6 @@
 import "server-only";
 import { SITE_URL, TAGLINE } from "./site";
+import { emailHeader, LOGO_CID } from "./logo-inline";
 
 export type Brief = {
   id: string;
@@ -37,7 +38,11 @@ const H = (label: string) =>
   `<p style="margin:26px 0 10px;font-size:12px;font-weight:bold;letter-spacing:2px;color:#a03434">${label}</p>`;
 
 /** Renders an issue as an email. `unsubscribeUrl` is per recipient. */
-export function renderBrief(b: Pick<Brief, "issue_no" | "subject" | "bluf" | "ideas" | "questions" | "action">, unsubscribeUrl: string) {
+export function renderBrief(
+  b: Pick<Brief, "issue_no" | "subject" | "bluf" | "ideas" | "questions" | "action">,
+  unsubscribeUrl: string,
+  logoSrc = `cid:${LOGO_CID}`,
+) {
   const site = SITE_URL.replace(/^https?:\/\//, "");
   const no = b.issue_no ? `ISSUE ${b.issue_no}` : "";
   const ideas = b.ideas
@@ -51,14 +56,7 @@ export function renderBrief(b: Pick<Brief, "issue_no" | "subject" | "bluf" | "id
   const html = `<!doctype html><html><body style="margin:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#0b1320">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden">
-<tr><td style="background:#0b1320;padding:24px 28px;border-bottom:4px solid #ea9a23">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td valign="middle" style="width:68px;padding-right:16px"><img src="${SITE_URL}/brand/vs-logo.png" width="56" height="56" alt="Victor Simz" style="display:block;width:56px;height:56px;border-radius:50%;border:1px solid #3a4352"></td>
-<td valign="middle">
-<div style="color:#ea9a23;font-size:12px;font-weight:bold;letter-spacing:3px">THE TAKE COMMAND BRIEF${no ? ` · ${no}` : ""}</div>
-<div style="color:#ffffff;font-family:Georgia,serif;font-size:24px;font-weight:bold;line-height:1.25;margin-top:6px">${esc(b.subject)}</div>
-</td></tr></table>
-</td></tr>
+${emailHeader(`THE TAKE COMMAND BRIEF${no ? ` · ${no}` : ""}`, esc(b.subject), logoSrc)}
 <tr><td style="padding:8px 28px 28px">
 ${H("BOTTOM LINE UP FRONT")}
 <p style="margin:0;font-size:18px;line-height:1.55;font-weight:bold;border-left:4px solid #ea9a23;padding-left:14px">${esc(b.bluf)}</p>
