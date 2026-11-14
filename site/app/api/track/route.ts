@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const path = String(body.path ?? "").slice(0, 200);
-    if (!path.startsWith("/") || path.startsWith("/admin") || path.startsWith("/api")) return new NextResponse(null, { status: 204 });
+    if (!path.startsWith("/") || path.startsWith("/admin") || path.startsWith("/api") || path.startsWith("/unsubscribe")) return new NextResponse(null, { status: 204 });
 
     // Skip visits from a browser that is signed in to the admin panel, so the owner's own visits are not counted.
     const store = await cookies();
