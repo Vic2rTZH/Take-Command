@@ -33,7 +33,7 @@ export default function NewsletterForm() {
   if (state === "done") {
     return (
       <p className="nl-done" role="status">
-        You&apos;re on the list. The next issue will come to your inbox.
+        You&apos;re on the list. Check your inbox for a short confirmation.
       </p>
     );
   }

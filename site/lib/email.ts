@@ -47,6 +47,37 @@ export async function sendResourceEmail(d: Delivery): Promise<{ ok: boolean; err
   return { ok: true };
 }
 
+/** Confirms a newsletter-only sign-up. */
+export async function sendNewsletterWelcome(to: string): Promise<{ ok: boolean; error?: string }> {
+  if (!apiKey || !from) return { ok: false, error: "Email is not configured" };
+  const resend = new Resend(apiKey);
+  const site = SITE_URL.replace(/^https?:\/\//, "");
+  const html = `<!doctype html><html><body style="margin:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#0b1320">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden">
+<tr><td style="background:#0b1320;padding:22px 28px;border-bottom:4px solid #ea9a23"><span style="color:#ea9a23;font-size:12px;font-weight:bold;letter-spacing:3px">TAKE COMMAND</span></td></tr>
+<tr><td style="padding:28px">
+<p style="margin:0 0 14px;font-size:16px;line-height:1.6">Hello,</p>
+<p style="margin:0 0 14px;font-size:16px;line-height:1.6">You're on the list for <strong>The Take Command Brief</strong>: one page with a few action points, once or twice a month.</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.6">While you wait for the next issue, start with the free Commander's Life Audit.</p>
+<p style="margin:0 0 24px"><a href="${SITE_URL}/resources" style="display:inline-block;background:#ea9a23;color:#0b1320;font-weight:bold;font-size:15px;text-decoration:none;padding:14px 26px;border-radius:6px">See the free resources</a></p>
+<p style="margin:0;font-size:16px;line-height:1.6">Victor Simz</p>
+</td></tr>
+<tr><td style="padding:18px 28px;border-top:1px solid #e1e5eb;font-size:12px;line-height:1.5;color:#4a5362">${escapeHtml(TAGLINE)}<br>You received this because you subscribed at <a href="${SITE_URL}" style="color:#4a5362">${site}</a>. If that wasn't you, reply to this email and you will be removed. Every issue has an unsubscribe link.</td></tr>
+</table></td></tr></table></body></html>`;
+  const text = `Hello,\n\nYou're on the list for The Take Command Brief: one page with a few action points, once or twice a month.\n\nWhile you wait, start with the free Commander's Life Audit: ${SITE_URL}/resources\n\nVictor Simz\n${TAGLINE}\n\nIf you did not subscribe, reply to this email and you will be removed.`;
+  const { error } = await resend.emails.send({
+    from,
+    to,
+    subject: "You're on the list for The Take Command Brief",
+    html,
+    text,
+    replyTo: process.env.EMAIL_REPLY_TO || undefined,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** Adds the person to Resend contacts so newsletters can be sent as Broadcasts. Failures are non-fatal. */
 export async function syncContact(email: string, name: string | null, newsletter: boolean): Promise<void> {
   if (!apiKey) return;

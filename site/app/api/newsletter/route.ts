@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, dbConfigured } from "@/lib/supabase";
-import { syncContact } from "@/lib/email";
+import { sendNewsletterWelcome, syncContact } from "@/lib/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -37,5 +37,11 @@ export async function POST(request: Request) {
   }
 
   await syncContact(email, existing?.name ?? null, true);
+
+  // Confirm by email only the first time someone opts in.
+  if (!existing?.newsletter) {
+    const sent = await sendNewsletterWelcome(email);
+    if (!sent.ok) console.error("Newsletter welcome email failed:", sent.error);
+  }
   return NextResponse.json({ ok: true });
 }
