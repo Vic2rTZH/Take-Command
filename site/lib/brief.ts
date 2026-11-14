@@ -52,8 +52,12 @@ export function renderBrief(b: Pick<Brief, "issue_no" | "subject" | "bluf" | "id
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden">
 <tr><td style="background:#0b1320;padding:24px 28px;border-bottom:4px solid #ea9a23">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="middle" style="width:68px;padding-right:16px"><img src="${SITE_URL}/brand/vs-logo.png" width="56" height="56" alt="Victor Simz" style="display:block;width:56px;height:56px;border-radius:50%;border:1px solid #3a4352"></td>
+<td valign="middle">
 <div style="color:#ea9a23;font-size:12px;font-weight:bold;letter-spacing:3px">THE TAKE COMMAND BRIEF${no ? ` · ${no}` : ""}</div>
-<div style="color:#ffffff;font-family:Georgia,serif;font-size:24px;font-weight:bold;line-height:1.25;margin-top:8px">${esc(b.subject)}</div>
+<div style="color:#ffffff;font-family:Georgia,serif;font-size:24px;font-weight:bold;line-height:1.25;margin-top:6px">${esc(b.subject)}</div>
+</td></tr></table>
 </td></tr>
 <tr><td style="padding:8px 28px 28px">
 ${H("BOTTOM LINE UP FRONT")}
