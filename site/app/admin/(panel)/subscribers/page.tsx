@@ -67,8 +67,8 @@ export default async function SubscribersPage() {
                     <td style={{ whiteSpace: "nowrap" }}>{new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
                     <td>{s.email}</td>
                     <td>{s.name || "–"}</td>
-                    <td>{titles.join(", ") || "–"}</td>
-                    <td>{downloaded ? "Yes" : "Not yet"}</td>
+                    <td>{titles.join(", ") || "Newsletter only"}</td>
+                    <td>{titles.length === 0 ? "–" : downloaded ? "Yes" : "Not yet"}</td>
                     <td>{s.newsletter ? "Yes" : "No"}</td>
                   </tr>
                 );
