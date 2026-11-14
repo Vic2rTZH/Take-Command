@@ -15,7 +15,8 @@ Format, exactly:
 - bluf: the bottom line up front, one or two sentences.
 - ideas: exactly 3 short insights, 1 to 3 sentences each.
 - questions: exactly 2 reflective questions the reader asks themselves this week.
-- action: exactly 1 concrete action to take before the next issue, one or two sentences.`;
+- action: exactly 1 concrete action to take before the next issue, one or two sentences.
+Always answer by calling the write_brief tool. If you cannot use the tool, reply with only a JSON object with the keys subject, bluf, ideas, questions and action.`;
 
 const TOOL = {
   name: "write_brief",
@@ -59,7 +60,8 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
         max_tokens: 1500,
         system: SYSTEM,
         tools: [TOOL],
-        tool_choice: { type: "tool", name: "write_brief" },
+        // Some models reject a forced tool choice, so the instruction asks for the tool and the text is parsed as a fallback.
+        tool_choice: { type: "auto" },
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -68,8 +70,20 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
       const msg = String(data?.error?.message || `status ${res.status}`).replace(/sk-ant-[A-Za-z0-9_-]+/g, "sk-ant-…");
       return { ok: false, message: `The AI request failed: ${msg}` };
     }
-    const block = (data?.content ?? []).find((c: { type: string }) => c.type === "tool_use");
-    const d = block?.input as BriefDraft | undefined;
+    const content: { type: string; input?: unknown; text?: string }[] = data?.content ?? [];
+    let d = content.find((c) => c.type === "tool_use")?.input as BriefDraft | undefined;
+    if (!d) {
+      const text = content.filter((c) => c.type === "text").map((c) => c.text || "").join("\n");
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        try {
+          d = JSON.parse(text.slice(start, end + 1)) as BriefDraft;
+        } catch {
+          d = undefined;
+        }
+      }
+    }
     if (!d || !Array.isArray(d.ideas) || !Array.isArray(d.questions)) return { ok: false, message: "The AI returned an incomplete draft. Try again." };
     return {
       ok: true,
