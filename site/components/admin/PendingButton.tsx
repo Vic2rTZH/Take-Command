@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 type Props = {
@@ -17,9 +17,8 @@ export default function PendingButton({ formAction, children, pendingText, class
   const { pending } = useFormStatus();
   const [clicked, setClicked] = useState(false);
 
-  useEffect(() => {
-    if (!pending) setClicked(false);
-  }, [pending]);
+  // Reset once the action has finished (adjusting state during render, as React recommends over an effect).
+  if (!pending && clicked) setClicked(false);
 
   const busy = pending && clicked;
   return (
