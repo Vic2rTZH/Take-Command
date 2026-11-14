@@ -17,8 +17,12 @@ export default function PendingButton({ formAction, children, pendingText, class
   const { pending } = useFormStatus();
   const [clicked, setClicked] = useState(false);
 
-  // Reset once the action has finished (adjusting state during render, as React recommends over an effect).
-  if (!pending && clicked) setClicked(false);
+  const [wasPending, setWasPending] = useState(pending);
+  // Reset only when an action finishes (pending goes from true to false), adjusting state during render as React recommends.
+  if (wasPending !== pending) {
+    setWasPending(pending);
+    if (!pending) setClicked(false);
+  }
 
   const busy = pending && clicked;
   return (
