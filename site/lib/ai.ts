@@ -37,6 +37,12 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
   // Trim: a key pasted with a trailing space or line break makes the request fail before it is sent.
   const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) return { ok: false, message: "AI drafting is not set up. Add ANTHROPIC_API_KEY in Vercel." };
+  if (/\s/.test(key) || !/^sk-ant-[A-Za-z0-9_-]+$/.test(key)) {
+    return {
+      ok: false,
+      message: "The ANTHROPIC_API_KEY value in Vercel is not just a key. It must contain only the key itself, starting with sk-ant-api03-, with no other text.",
+    };
+  }
 
   const hasCurrent = current && [current.subject, current.bluf, current.action, ...current.ideas, ...current.questions].some((x) => x.trim());
   const prompt = hasCurrent
@@ -59,7 +65,7 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
-      const msg = data?.error?.message || `status ${res.status}`;
+      const msg = String(data?.error?.message || `status ${res.status}`).replace(/sk-ant-[A-Za-z0-9_-]+/g, "sk-ant-…");
       return { ok: false, message: `The AI request failed: ${msg}` };
     }
     const block = (data?.content ?? []).find((c: { type: string }) => c.type === "tool_use");
@@ -77,7 +83,9 @@ export async function draftBrief(notes: string, current?: BriefDraft): Promise<{
     };
   } catch (e) {
     const detail = e instanceof Error ? (e.cause instanceof Error ? e.cause.message : e.message) : String(e);
-    console.error("AI request failed", e);
-    return { ok: false, message: `Could not reach the AI service (${detail.slice(0, 160)}). Try again.` };
+    // Never show any part of a key on screen.
+    const safe = detail.replace(/sk-ant-[A-Za-z0-9_-]+/g, "sk-ant-…");
+    console.error("AI request failed:", safe);
+    return { ok: false, message: `Could not reach the AI service (${safe.slice(0, 160)}). Try again.` };
   }
 }
