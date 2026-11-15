@@ -1561,7 +1561,17 @@ const _CAT_STORE_KEY = 'tc_budget_cats';
 function getBudgetCats(){
   try{
     const s=localStorage.getItem(_CAT_STORE_KEY);
-    if(s){ const p=JSON.parse(s); if(Array.isArray(p)&&p.length) return p; }
+    if(s){
+      const p=JSON.parse(s);
+      if(Array.isArray(p)&&p.length){
+        // Migrate entries that were saved before iconName was introduced
+        return p.map(c=>{
+          if(c.iconName) return c;
+          const def=_DEFAULT_CATS.find(d=>d.id===c.id);
+          return {...c, iconName: def?.iconName||'package'};
+        });
+      }
+    }
   }catch(e){}
   return _DEFAULT_CATS.map(c=>({...c}));
 }
