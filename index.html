@@ -1747,11 +1747,11 @@ function saveBudgetCatEdit(id){
   const cats=getBudgetCats();
   const idx=cats.findIndex(c=>c.id===id);
   if(idx<0) return;
-  const label=document.getElementById('bcat-lbl-'+id)?.value.trim();
-  const icon =document.getElementById('bcat-ico-'+id)?.value.trim();
-  const color=document.getElementById('bcat-clr-'+id)?.value;
+  const label   =document.getElementById('bcat-lbl-'+id)?.value.trim();
+  const iconName=document.getElementById('bcat-ico-'+id)?.value.trim();
+  const color   =document.getElementById('bcat-clr-'+id)?.value;
   if(!label){ showToast('Label cannot be empty'); return; }
-  cats[idx]={...cats[idx], label, icon:icon||cats[idx].icon, color:color||cats[idx].color};
+  cats[idx]={...cats[idx], label, iconName:iconName||cats[idx].iconName||'package', color:color||cats[idx].color};
   saveBudgetCats(cats);
   FIN_CATS = cats;
   rerenderFinance();
@@ -1759,13 +1759,13 @@ function saveBudgetCatEdit(id){
 }
 
 function addBudgetCat(){
-  const label=document.getElementById('new-cat-lbl')?.value.trim();
-  const icon =document.getElementById('new-cat-ico')?.value.trim()||'📁';
-  const color=document.getElementById('new-cat-clr')?.value||'#718096';
+  const label   =document.getElementById('new-cat-lbl')?.value.trim();
+  const iconName=document.getElementById('new-cat-ico')?.value.trim()||'package';
+  const color   =document.getElementById('new-cat-clr')?.value||'#718096';
   if(!label){ showToast('Enter a category name'); return; }
   const id='cat_'+Date.now();
   const cats=getBudgetCats();
-  cats.push({id, label, icon, iconName:'package', color});
+  cats.push({id, label, iconName, color});
   saveBudgetCats(cats);
   FIN_CATS = cats;
   rerenderFinance();
@@ -1829,9 +1829,10 @@ function buildBudgetHTML() {
     const remain = b - s;
     const isOver = s > b && b > 0;
 
+    const iconNames=Object.keys(ICON_PATHS).join(', ');
     const editRow=`<div id="bcat-edit-${c.id}" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin:-2px 0 4px;background:var(--bg4);border-radius:8px;border:1px solid var(--border2)">
       <span style="font-size:11px;color:var(--text3);font-weight:700">ICON</span>
-      <input id="bcat-ico-${c.id}" type="text" value="${c.icon||''}" placeholder="emoji" style="width:52px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 7px;font-size:16px;text-align:center">
+      <input id="bcat-ico-${c.id}" type="text" list="icon-names-list" value="${c.iconName||'package'}" placeholder="e.g. home" style="width:120px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 7px;font-size:12px">
       <span style="font-size:11px;color:var(--text3);font-weight:700">LABEL</span>
       <input id="bcat-lbl-${c.id}" type="text" value="${c.label}" placeholder="Category name" style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 8px;font-size:13px">
       <span style="font-size:11px;color:var(--text3);font-weight:700">COLOR</span>
@@ -1841,7 +1842,7 @@ function buildBudgetHTML() {
     </div>`;
     return `<div>
     <div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px 76px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><span style="font-size:16px">${c.icon||''}</span> ${c.label}</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600">${iconSvg(c.iconName||'package',16,c.color)} ${c.label}</div>
       <div>
         <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px">
           <span style="font-size:11px;color:var(--text3);font-weight:700">ZMW</span>
@@ -1926,8 +1927,9 @@ function buildBudgetHTML() {
             <div class="card-title" style="margin-bottom:14px">New Budget Category</div>
             <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
               <div>
-                <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">ICON (emoji)</div>
-                <input id="new-cat-ico" type="text" placeholder="📁" style="width:56px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px;font-size:18px;text-align:center">
+                <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">ICON NAME</div>
+                <input id="new-cat-ico" type="text" list="icon-names-list" placeholder="package" style="width:130px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 9px;font-size:12px">
+                <datalist id="icon-names-list">${Object.keys(ICON_PATHS).map(k=>`<option value="${k}">`).join('')}</datalist>
               </div>
               <div style="flex:1;min-width:140px">
                 <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">CATEGORY NAME</div>
