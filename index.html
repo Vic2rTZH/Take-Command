@@ -1542,21 +1542,36 @@ function renderDashboardTasks(filter){
 // ================================================================
 //  FINANCIAL TRACKER MODULE
 // ================================================================
-const FIN_CATS = [
-  {id:'charity',       label:'Charity',           color:'#f472b6'},
-  {id:'housing',       label:'Housing / Rent',    color:'#e53e3e'},
-  {id:'food',          label:'Food & Groceries',  color:'#dd6b20'},
-  {id:'transport',     label:'Transport',          color:'#d69e2e'},
-  {id:'utilities',     label:'Utilities',          color:'#38a169'},
-  {id:'health',        label:'Health',             color:'#3182ce'},
-  {id:'education',     label:'Education',          color:'#805ad5'},
-  {id:'entertainment', label:'Entertainment',      color:'#d53f8c'},
-  {id:'clothing',      label:'Clothing',           color:'#b7791f'},
-  {id:'family',        label:'Family',             color:'#319795'},
-  {id:'business',      label:'Business',           color:'#2b6cb0'},
-  {id:'subscriptions', label:'Subscriptions',      color:'#6b46c1'},
-  {id:'other',         label:'Misc',               color:'#718096'},
+const _DEFAULT_CATS = [
+  {id:'charity',       label:'Charity',           icon:'❤️',  iconName:'heart',         color:'#f472b6'},
+  {id:'housing',       label:'Housing / Rent',    icon:'🏠', iconName:'home',          color:'#e53e3e'},
+  {id:'food',          label:'Food & Groceries',  icon:'🛒', iconName:'shopping-cart', color:'#dd6b20'},
+  {id:'transport',     label:'Transport',          icon:'🚗', iconName:'car',           color:'#d69e2e'},
+  {id:'utilities',     label:'Utilities',          icon:'💡', iconName:'zap',           color:'#38a169'},
+  {id:'health',        label:'Health',             icon:'💊', iconName:'heart',         color:'#3182ce'},
+  {id:'education',     label:'Education',          icon:'📚', iconName:'book-open',     color:'#805ad5'},
+  {id:'entertainment', label:'Entertainment',       icon:'🎬', iconName:'film',          color:'#d53f8c'},
+  {id:'clothing',      label:'Clothing',            icon:'👕', iconName:'shirt',         color:'#b7791f'},
+  {id:'family',        label:'Family',              icon:'👨‍👩‍👧', iconName:'users',       color:'#319795'},
+  {id:'business',      label:'Business',            icon:'💼', iconName:'briefcase',     color:'#2b6cb0'},
+  {id:'subscriptions', label:'Subscriptions',       icon:'📋', iconName:'credit-card',   color:'#6b46c1'},
+  {id:'other',         label:'Misc',                icon:'📦', iconName:'package',       color:'#718096'},
 ];
+const _CAT_STORE_KEY = 'tc_budget_cats';
+function getBudgetCats(){
+  try{
+    const s=localStorage.getItem(_CAT_STORE_KEY);
+    if(s){ const p=JSON.parse(s); if(Array.isArray(p)&&p.length) return p; }
+  }catch(e){}
+  return _DEFAULT_CATS.map(c=>({...c}));
+}
+function saveBudgetCats(cats){ localStorage.setItem(_CAT_STORE_KEY, JSON.stringify(cats)); supabasePush(_CAT_STORE_KEY, cats); }
+// FIN_CATS alias used by expense logic — always mirrors budget cats
+function getFINCATS(){ return getBudgetCats(); }
+// Keep FIN_CATS as a lazy-evaluated reference for legacy static usage; synced on load
+let FIN_CATS = _DEFAULT_CATS;
+// Sync after DOM is ready so any saved custom cats are live immediately
+document.addEventListener('DOMContentLoaded', ()=>{ FIN_CATS = getBudgetCats(); });
 
 let _finMonth = '';
 function finInit(){ if(!_finMonth) _finMonth = todayKey().slice(0,7); }
@@ -1669,7 +1684,7 @@ function renderExpenseChart(){
   const cx=canvas.width/2, cy=112, r=90, inner=52;
   let ang=-Math.PI/2;
   const segs=[];
-  FIN_CATS.forEach(cat=>{
+  getFINCATS().forEach(cat=>{
     const val=bycat[cat.id]||0;
     if(val>0){ const sl=(val/total)*Math.PI*2; segs.push({...cat,val,sl,ang}); ang+=sl; }
   });
@@ -1694,21 +1709,7 @@ function renderExpenseChart(){
 // ================================================================
 const BUDGET_KEY = 'tc_budget';
 
-const BUDGET_CATS = [
-  {id:'charity',       label:'Charity',             icon:'❤️', iconName:'heart',          color:'#f472b6'},
-  {id:'housing',       label:'Housing / Rent',     icon:'🏠', iconName:'home',          color:'#e53e3e'},
-  {id:'food',          label:'Food & Groceries',   icon:'🛒', iconName:'shopping-cart',  color:'#dd6b20'},
-  {id:'transport',     label:'Transport',           icon:'🚗', iconName:'car',            color:'#d69e2e'},
-  {id:'utilities',     label:'Utilities',           icon:'💡', iconName:'zap',            color:'#38a169'},
-  {id:'health',        label:'Health',              icon:'💊', iconName:'heart',          color:'#3182ce'},
-  {id:'education',     label:'Education',           icon:'📚', iconName:'book-open',      color:'#805ad5'},
-  {id:'entertainment', label:'Entertainment',       icon:'🎬', iconName:'film',           color:'#d53f8c'},
-  {id:'clothing',      label:'Clothing',            icon:'👕', iconName:'shirt',          color:'#b7791f'},
-  {id:'family',        label:'Family',              icon:'👨‍👩‍👧', iconName:'users',        color:'#319795'},
-  {id:'business',      label:'Business',            icon:'💼', iconName:'briefcase',      color:'#2b6cb0'},
-  {id:'subscriptions', label:'Subscriptions',       icon:'📋', iconName:'credit-card',    color:'#6b46c1'},
-  {id:'other',         label:'Misc',                icon:'📦', iconName:'package',        color:'#718096'},
-];
+// BUDGET_CATS is now dynamic — always call getBudgetCats() instead of using this directly
 
 function getBudget() {
   try { return JSON.parse(localStorage.getItem(BUDGET_KEY) || '{}'); } catch(e) { return {}; }
@@ -1719,12 +1720,61 @@ function clearBudgetCat(id){
   const budget=getBudget();
   delete budget[id];
   saveBudget(budget);
-  const el=document.getElementById('bgt-'+id);
-  if(el) el.value='';
   rerenderFinance();
-  const bel=document.getElementById('budget-section');
-  if(bel) bel.outerHTML=buildBudgetHTML();
   showToast('Budget cleared for category');
+}
+
+function deleteBudgetCat(id){
+  if(!confirm('Delete this category? This also clears its budget and cannot be undone.')) return;
+  const cats=getBudgetCats().filter(c=>c.id!==id);
+  saveBudgetCats(cats);
+  FIN_CATS = cats;
+  const budget=getBudget(); delete budget[id]; saveBudget(budget);
+  rerenderFinance();
+  showToast('Category deleted');
+}
+
+function editBudgetCat(id){
+  const cats=getBudgetCats();
+  const cat=cats.find(c=>c.id===id);
+  if(!cat) return;
+  // Show inline edit form by toggling a hidden row
+  const row=document.getElementById('bcat-edit-'+id);
+  if(row){ row.style.display=row.style.display==='none'?'flex':'none'; return; }
+}
+
+function saveBudgetCatEdit(id){
+  const cats=getBudgetCats();
+  const idx=cats.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const label=document.getElementById('bcat-lbl-'+id)?.value.trim();
+  const icon =document.getElementById('bcat-ico-'+id)?.value.trim();
+  const color=document.getElementById('bcat-clr-'+id)?.value;
+  if(!label){ showToast('Label cannot be empty'); return; }
+  cats[idx]={...cats[idx], label, icon:icon||cats[idx].icon, color:color||cats[idx].color};
+  saveBudgetCats(cats);
+  FIN_CATS = cats;
+  rerenderFinance();
+  showToast('Category updated');
+}
+
+function addBudgetCat(){
+  const label=document.getElementById('new-cat-lbl')?.value.trim();
+  const icon =document.getElementById('new-cat-ico')?.value.trim()||'📁';
+  const color=document.getElementById('new-cat-clr')?.value||'#718096';
+  if(!label){ showToast('Enter a category name'); return; }
+  const id='cat_'+Date.now();
+  const cats=getBudgetCats();
+  cats.push({id, label, icon, iconName:'package', color});
+  saveBudgetCats(cats);
+  FIN_CATS = cats;
+  rerenderFinance();
+  showToast('Category added');
+}
+
+function toggleAddCatForm(){
+  const f=document.getElementById('add-cat-form');
+  if(f) f.style.display=f.style.display==='none'?'block':'none';
 }
 
 function toggleBudgetSection() {
@@ -1744,7 +1794,7 @@ function toggleBudgetSection() {
 function saveBudgetForm() {
   finInit();
   const budget = {};
-  BUDGET_CATS.forEach(c => {
+  getBudgetCats().forEach(c => {
     const el = document.getElementById('bgt-' + c.id);
     const val = parseFloat(el?.value);
     if (!isNaN(val) && val > 0) budget[c.id] = val;
@@ -1757,6 +1807,7 @@ function saveBudgetForm() {
 
 function buildBudgetHTML() {
   finInit();
+  const BUDGET_CATS = getBudgetCats();
   const budget = getBudget();
   const data = getFinance(_finMonth);
   const spent = {};
@@ -1778,8 +1829,19 @@ function buildBudgetHTML() {
     const remain = b - s;
     const isOver = s > b && b > 0;
 
-    return `<div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px 52px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${iconSvg(c.iconName,14,c.color)} ${c.label}</div>
+    const editRow=`<div id="bcat-edit-${c.id}" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin:-2px 0 4px;background:var(--bg4);border-radius:8px;border:1px solid var(--border2)">
+      <span style="font-size:11px;color:var(--text3);font-weight:700">ICON</span>
+      <input id="bcat-ico-${c.id}" type="text" value="${c.icon||''}" placeholder="emoji" style="width:52px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 7px;font-size:16px;text-align:center">
+      <span style="font-size:11px;color:var(--text3);font-weight:700">LABEL</span>
+      <input id="bcat-lbl-${c.id}" type="text" value="${c.label}" placeholder="Category name" style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 8px;font-size:13px">
+      <span style="font-size:11px;color:var(--text3);font-weight:700">COLOR</span>
+      <input id="bcat-clr-${c.id}" type="color" value="${c.color}" style="width:36px;height:30px;border:1px solid var(--border2);border-radius:5px;cursor:pointer;background:none">
+      <button onclick="saveBudgetCatEdit('${c.id}')" style="padding:5px 12px;background:#4ade8022;border:1px solid #4ade80;border-radius:5px;color:#4ade80;font-size:12px;font-weight:700;cursor:pointer">Save</button>
+      <button onclick="document.getElementById('bcat-edit-${c.id}').style.display='none'" style="padding:5px 10px;background:none;border:1px solid var(--border);border-radius:5px;color:var(--text3);font-size:12px;cursor:pointer">Cancel</button>
+    </div>`;
+    return `<div>
+    <div style="display:grid;grid-template-columns:180px 110px 1fr 110px 110px 76px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><span style="font-size:16px">${c.icon||''}</span> ${c.label}</div>
       <div>
         <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px">
           <span style="font-size:11px;color:var(--text3);font-weight:700">ZMW</span>
@@ -1800,9 +1862,12 @@ function buildBudgetHTML() {
         ${b>0 ? `<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${barColor}22;color:${barColor};border:1px solid ${barColor}44">${pct>=100?'OVER BUDGET':pct>=80?'NEAR LIMIT':'ON TRACK'}</span>` : ''}
       </div>
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">
-        <button onclick="document.getElementById('bgt-${c.id}').focus();document.getElementById('bgt-${c.id}').select()" title="Edit" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f5c842';this.style.borderColor='#f5c842'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('edit-2',12,'currentColor')}</button>
-        <button onclick="clearBudgetCat('${c.id}')" title="Clear budget" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('x',12,'currentColor')}</button>
+        <button onclick="const r=document.getElementById('bcat-edit-${c.id}');r.style.display=r.style.display==='none'?'flex':'none'" title="Edit category" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f5c842';this.style.borderColor='#f5c842'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('edit-2',12,'currentColor')}</button>
+        <button onclick="clearBudgetCat('${c.id}')" title="Clear budget amount" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#fbbf24';this.style.borderColor='#fbbf24'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('minus-circle',12,'currentColor')}</button>
+        <button onclick="deleteBudgetCat('${c.id}')" title="Delete category" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 6px;cursor:pointer;color:var(--text3);display:flex;align-items:center" onmouseover="this.style.color='#f87171';this.style.borderColor='#f87171'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">${iconSvg('trash-2',12,'currentColor')}</button>
       </div>
+    </div>
+    ${editRow}
     </div>`;
   }).join('');
 
@@ -1851,6 +1916,32 @@ function buildBudgetHTML() {
           <button class="tb-btn btn-gold no-print" onclick="saveBudgetForm()" style="padding:8px 20px;font-size:13px">💾 Save Budget</button>
         </div>
       </div>
+      <!-- Add Category collapsible -->
+      <div style="margin-top:10px">
+        <button onclick="toggleAddCatForm()" style="display:flex;align-items:center;gap:8px;background:none;border:1px dashed var(--border2);border-radius:8px;padding:8px 16px;cursor:pointer;color:var(--text3);font-size:13px;font-weight:600;width:100%;justify-content:center" onmouseover="this.style.borderColor='#4ade80';this.style.color='#4ade80'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+          ${iconSvg('plus-circle',14,'currentColor')} Add New Category
+        </button>
+        <div id="add-cat-form" style="display:none;margin-top:10px">
+          <div class="card" style="padding:16px">
+            <div class="card-title" style="margin-bottom:14px">New Budget Category</div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+              <div>
+                <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">ICON (emoji)</div>
+                <input id="new-cat-ico" type="text" placeholder="📁" style="width:56px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px;font-size:18px;text-align:center">
+              </div>
+              <div style="flex:1;min-width:140px">
+                <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">CATEGORY NAME</div>
+                <input id="new-cat-lbl" type="text" placeholder="e.g. Travel" style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px">COLOR</div>
+                <input id="new-cat-clr" type="color" value="#718096" style="width:44px;height:36px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:none">
+              </div>
+              <button onclick="addBudgetCat()" style="padding:8px 18px;background:#4ade8022;border:1px solid #4ade80;border-radius:6px;color:#4ade80;font-size:13px;font-weight:700;cursor:pointer">Add Category</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -1888,7 +1979,7 @@ function buildFinanceHTML(){
 
   const bycat={};
   data.expenses.forEach(e=>{const c=e.category||'other'; bycat[c]=(bycat[c]||0)+(e.amount||0);});
-  const catRows=FIN_CATS.filter(c=>bycat[c.id]>0).map(c=>{
+  const catRows=getFINCATS().filter(c=>bycat[c.id]>0).map(c=>{
     const pct=totalExp>0?Math.round((bycat[c.id]/totalExp)*100):0;
     return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
       <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
@@ -1913,7 +2004,7 @@ function buildFinanceHTML(){
         <th style="width:36px"></th>
       </tr></thead>
       <tbody>${items.map(e=>{
-        const cat=FIN_CATS.find(c=>c.id===e.category);
+        const cat=getFINCATS().find(c=>c.id===e.category);
         const linkedAcc=e.accId?allAccounts.find(a=>a.id===e.accId):null;
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:8px;font-size:12px;color:var(--text2);white-space:nowrap">${e.date||'—'}</td>
@@ -1944,7 +2035,7 @@ function buildFinanceHTML(){
   };
 
   const mkAddForm=(section,btnColor,textColor)=>{
-    const catSel=section==='expenses'?`<select id="fin-cat-expenses" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;min-width:150px">${FIN_CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select>`:'';
+    const catSel=section==='expenses'?`<select id="fin-cat-expenses" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;min-width:150px">${getFINCATS().map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select>`:'';
     const accounts=getAccounts();
     const txVerb=section==='incomes'?'Deposit to':'Pay from';
     const accSel=`<select id="fin-acc-${section}" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;min-width:150px">
